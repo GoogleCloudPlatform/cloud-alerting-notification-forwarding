@@ -75,19 +75,8 @@ def send_monitoring_notification_to_third_party(notification):
         indicating whether or not sending the notification to the third
         party service was successful.
     """
-
-    philips_hue_client = philips_hue.PhilipsHueClient(app.config['BRIDGE_IP_ADDRESS'],
-                                                      app.config['USERNAME'])
-
-    try:
-        hue_value = philips_hue.get_target_hue_from_monitoring_notification(
-            notification, app.config["POLICY_HUE_MAPPING"])
-        philips_hue_client.set_color(app.config['LIGHT_ID'], hue_value)
-    except philips_hue.Error as e:
-        logger.error(e)
-        return (str(e), 400)
-
-    return (repr(hue_value), 200)
+    logger.info('get a message: %s', json.dumps(notification))
+    return ('wdzc', 200)
 
 
 if __name__ == '__main__':
