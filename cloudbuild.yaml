@@ -223,7 +223,7 @@ steps:
         echo "Branch '$BRANCH_NAME' does not represent an official environment."
         echo "*******************************************************************************"
       fi
-  timeout: 300s # 5 minutes
+  timeout: 600s # 10 minutes
 
 # set substitution variables
 substitutions:
