@@ -61,7 +61,7 @@ steps:
 
   # Uses the docker build step to build an image
   name: 'gcr.io/cloud-builders/docker'
-  args: ['build', '--build-arg', 'PROJECT_ID=$PROJECT_ID', '--tag', 'gcr.io/$PROJECT_ID/${_IMAGE_NAME}', './jira_integration_example']
+  args: ['build', '--build-arg', 'PROJECT_ID=$PROJECT_ID', '--tag', 'gcr.io/$PROJECT_ID/${_IMAGE_NAME}', './philips_hue_integration_example']
   timeout: 300s # 5 minutes
 
 - id: 'push docker image to Container Registry'
@@ -89,7 +89,7 @@ steps:
   - '-c'
   - | 
       # check current branch
-      if [ "$BRANCH_NAME" = "dev" ] || [ "$BRANCH_NAME" = "prod" ]; then
+      if [ "$BRANCH_NAME" = "dev" ] || [ "$BRANCH_NAME" = "main" ]; then
         echo "***********************"
         echo "Applying terraform configs from git branch $BRANCH_NAME"
         echo "to google cloud monitoring project $PROJECT_ID"
@@ -109,7 +109,7 @@ steps:
   - '-c'
   - |
       # terraform initialization for dev or prod environments
-      if [ "$BRANCH_NAME" = "dev" ] || [ "$BRANCH_NAME" = "prod" ]; then
+      if [ "$BRANCH_NAME" = "dev" ] || [ "$BRANCH_NAME" = "main" ]; then
         cd environments/$BRANCH_NAME
         echo ""
         echo "*************** TERRAFORM INIT ******************"
@@ -143,7 +143,7 @@ steps:
   - '-c'
   - |
       # refresh terraform state for dev or prod environments
-      if [ "$BRANCH_NAME" = "dev" ] || [ "$BRANCH_NAME" = "prod" ]; then
+      if [ "$BRANCH_NAME" = "dev" ] || [ "$BRANCH_NAME" = "main" ]; then
         cd environments/$BRANCH_NAME
         echo ""
         echo "*************** TERRAFORM REFRESH ******************"
