@@ -14,5 +14,3 @@
 
 
 variable "project" {}
-
-variable "pubsub_service_account_email" {}

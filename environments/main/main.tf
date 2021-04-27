@@ -15,3 +15,40 @@
 provider "google" {
   project = var.project
 }
+
+module "pubsub" {
+  source  = "../../modules/pubsub"
+  
+  topic              = "tf-topic-wdzc"
+  project            = "${var.project}"
+
+  push_subscription = {
+      name              = "alert-push-subscription-wdzc"
+      push_endpoint     = "${module.cloud_run_with_pubsub.url}"
+      auth_account      = "${module.pubsub_service_account.service_account_email}"
+  }
+}
+
+module "cloud_run_with_pubsub" {
+  source  = "../../modules/cloud_run_with_pubsub"
+  project = "${var.project}"
+  
+  pubsub_service_account_email = "${module.pubsub_service_account.service_account_email}"
+}
+
+data "google_project" "project" {}
+
+# enable Pub/Sub to create authentication tokens in the project
+resource "google_project_iam_binding" "project" {
+  project = var.project
+  role    = "roles/iam.serviceAccountTokenCreator"
+  
+  members = [
+    "serviceAccount:service-${data.google_project.project.number}@gcp-sa-pubsub.iam.gserviceaccount.com"
+  ]
+}
+
+module "pubsub_service_account" {
+  source  = "../../modules/pubsub_service_account"
+  project = var.project
+}
