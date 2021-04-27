@@ -21,13 +21,13 @@
 # For more information about Terraform, you can find the documentation here:
 # https://www.terraform.io/docs/index.html
 #
-# If Cloud Build is run from a git branch named either "dev" or "prod", 
+# If Cloud Build is run from a git branch named either "dev" or "main", 
 # the configuration will be applied to the cloud project provided via
 # environment variable $PROJECT_ID. Otherwise, the changes will be planned,
 # but not applied (dry run mode, which is useful when testing config changes
 # from a development branch).
 #
-# For dev and prod branches, the following steps are executed:
+# For dev and main branches, the following steps are executed:
 # 1. terraform init
 # 2. terraform refresh
 # 3. terraform plan
@@ -54,7 +54,7 @@
 #    gcloud config set project PROD_PROJECT_ID
 # 2. Build and deploy the project
 #    cd ~/cloud-monitoring-notification-delivery-integration-sample-code
-#    gcloud builds submit . --config cloudbuild.yaml --substitutions BRANCH_NAME=prod
+#    gcloud builds submit . --config cloudbuild.yaml --substitutions BRANCH_NAME=main
 
 steps:
 - id: 'build docker image'
@@ -98,7 +98,7 @@ steps:
         echo "***********************"
         echo "[dry run mode] Planning terraform configs from git branch $BRANCH_NAME"
         echo "to google cloud monitoring project $PROJECT_ID."
-        echo "To apply the configs, rerun this command from git branch 'dev' or 'prod'."
+        echo "To apply the configs, rerun this command from git branch 'dev' or 'main'."
         echo "***********************"  
       fi
 
@@ -177,7 +177,7 @@ steps:
   - '-c'
   - | 
       # plan terraform changes for dev or prod environments
-      if [ "$BRANCH_NAME" = "dev" ] || [ "$BRANCH_NAME" = "prod" ]; then
+      if [ "$BRANCH_NAME" = "dev" ] || [ "$BRANCH_NAME" = "main" ]; then
         cd environments/$BRANCH_NAME
         echo ""
         echo "*************** TERRAFORM PLAN ******************"
@@ -211,7 +211,7 @@ steps:
   - '-c'
   - | 
       # apply terraform changes for dev or prod environments only
-      if [ "$BRANCH_NAME" = "dev" ] || [ "$BRANCH_NAME" = "prod" ]; then
+      if [ "$BRANCH_NAME" = "dev" ] || [ "$BRANCH_NAME" = "main" ]; then
         cd environments/$BRANCH_NAME      
         echo ""
         echo "*************** TERRAFORM APPLY ******************"
