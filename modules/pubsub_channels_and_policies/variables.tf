@@ -13,7 +13,7 @@
 # limitations under the License.
 
 
-variable "project" {}
+variable "project_id" {}
 variable "topic" {}
 
 variable "pubsub_topic_depends_on" {
