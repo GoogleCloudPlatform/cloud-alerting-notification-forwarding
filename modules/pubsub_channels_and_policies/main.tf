@@ -29,7 +29,7 @@ resource "google_pubsub_topic_iam_binding" "binding" {
   members = [
       "serviceAccount:service-${data.google_project.project.number}@gcp-sa-monitoring-notification.iam.gserviceaccount.com"
   ]
-  depends_on = [var.pubsub_topic_depends_on]
+  depends_on = [google_monitoring_notification_channel.pubsub]
 }
 
 # Create Cloud Pubsub notification channels.
@@ -40,8 +40,7 @@ resource "google_monitoring_notification_channel" "pubsub" {
   labels = {
     topic = var.topic
   }
-  depends_on = [google_pubsub_topic_iam_binding.binding]
-  
+  depends_on = [var.pubsub_topic_depends_on]
 }
 
 # Create an alert policy with a Cloud Pubsub notification channel
