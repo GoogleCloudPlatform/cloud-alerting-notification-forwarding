@@ -58,8 +58,8 @@ module "pubsub_service_account" {
 }
 
 module "pubsub_channels_and_policies" {
-  source  = "../../modules/pubsub_channels_and_policies"
-  topic              = local.pubsub_topic
-  project            = "${var.project}"
+  source                  = "../../modules/pubsub_channels_and_policies"
+  topic                   = local.pubsub_topic
+  project_id              = "${var.project}"
   pubsub_topic_depends_on = [module.pubsub.topic]
 }
