@@ -15,25 +15,28 @@
 # Grant Google Monitoring Service Account the Pubsub publish role. This is needed to publish notification in the 
 # given Cloud PubSub channel.
 # https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/pubsub_topic_iam#google_pubsub_topic_iam_binding
+
+# To get the project number.
+data "google_project" "project" {
+    project_id = var.project_id
+}
+
+# To enable the Cloud PubSub channel as a publisher.
 resource "google_pubsub_topic_iam_binding" "binding" {
-  project = google_pubsub_topic.tf.project
-  topic = google_pubsub_topic.tf.name
+  project = var.project_id
+  topic = var.topic
   role = "roles/pubsub.publisher"
-  member = "serviceAccount:service-663007850766@gcp-sa-monitoring-notification.iam.gserviceaccount.com"
+  member = "serviceAccount:service-${data.google_project.project.number}@gcp-sa-monitoring-notification.iam.gserviceaccount.com"
 }
 
 # Create Cloud Pubsub notification channels.
 # See https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/monitoring_notification_channel
-resource "google_monitoring_notification_channel" "basic" {
-  display_name = "Test Notification Channel"
+resource "google_monitoring_notification_channel" "pubsub" {
+  display_name = "Cloud Pubsub Notification Channel for wdzc"
   type         = "pubsub"
   labels = {
     topic = var.topic
   }
-}
-
-data "google_monitoring_notification_channel" "basic" {
-  display_name = "Test Notification Channel"
 }
 
 # Create an alert policy with a Cloud Pubsub notification channel
@@ -44,17 +47,19 @@ resource "google_monitoring_alert_policy" "alert_policy" {
   conditions {
     display_name = "test condition"
     condition_threshold {
-      filter     = "metric.type=\"compute.googleapis.com/instance/disk/write_bytes_count\" AND resource.type=\"gce_instance\""
+      filter     = "metric.type=\"compute.googleapis.com/instance/cpu/usage_time\" AND resource.type=\"gce_instance\""
       duration   = "60s"
       comparison = "COMPARISON_GT"
+      threshold_value = 0
+      trigger {
+        count = 1
+      }
       aggregations {
         alignment_period   = "60s"
-        per_series_aligner = "ALIGN_RATE"
+        per_series_aligner = "ALIGN_SUM"
+        cross_series_reducer = "REDUCE_SUM"       
       }
     }
   }
-  notification_channels =[data.google_monitoring_notification_channel.basic.name]
-  user_labels = {
-    foo = "bar"
-  }
+  notification_channels =[google_monitoring_notification_channel.pubsub.name]
 }

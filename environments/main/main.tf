@@ -12,6 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+locals {
+  pubsub_topic = "tf-topic-wdzc"
+}
+
 provider "google" {
   project = var.project
 }
@@ -19,7 +23,7 @@ provider "google" {
 module "pubsub" {
   source  = "../../modules/pubsub"
   
-  topic              = "tf-topic-wdzc"
+  topic              = local.pubsub_topic
   project            = "${var.project}"
 
   push_subscription = {
@@ -51,4 +55,13 @@ resource "google_project_iam_binding" "project" {
 module "pubsub_service_account" {
   source  = "../../modules/pubsub_service_account"
   project = var.project
+}
+
+module "pubsub_channels_and_policies" {
+  source  = "../../modules/pubsub_channels_and_policies"
+  topic              = local.pubsub_topic
+  project            = "${var.project}"
+  depends_on = [
+    module.pubsub,
+  ]
 }

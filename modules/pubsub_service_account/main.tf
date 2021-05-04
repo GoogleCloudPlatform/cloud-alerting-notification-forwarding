@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 resource "google_service_account" "service_account" {
   account_id   = "cloud-run-pubsub-invoker-wdzc"
   display_name = "Cloud Run Pubsub Invoker created by wdzc"
