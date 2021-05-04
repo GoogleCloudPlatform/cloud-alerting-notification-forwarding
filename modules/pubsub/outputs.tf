@@ -14,7 +14,7 @@
 
 
 output "topic" {
-  value = "${google_pubsub_topic.tf.name}"
+  value = "${google_pubsub_topic.tf.id}"
 
   # Anything that refers to this output must wait until
   # the actions for the items in the below list
