@@ -61,7 +61,5 @@ module "pubsub_channels_and_policies" {
   source  = "../../modules/pubsub_channels_and_policies"
   topic              = local.pubsub_topic
   project            = "${var.project}"
-  depends_on = [
-    module.pubsub,
-  ]
+  pubsub_topic_depends_on = [module.pubsub.topic]
 }

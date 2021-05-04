@@ -15,4 +15,9 @@
 
 output "topic" {
   value = "${google_pubsub_topic.tf.name}"
+
+  # Anything that refers to this output must wait until
+  # the actions for the items in the below list
+  # to have completed first.
+  depends_on = [google_pubsub_topic.tf]  
 }
