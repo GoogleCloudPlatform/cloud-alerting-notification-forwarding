@@ -26,7 +26,9 @@ resource "google_pubsub_topic_iam_binding" "binding" {
   project = var.project_id
   topic = var.topic
   role = "roles/pubsub.publisher"
-  member = "serviceAccount:service-${data.google_project.project.number}@gcp-sa-monitoring-notification.iam.gserviceaccount.com"
+  members = [
+      "serviceAccount:service-${data.google_project.project.number}@gcp-sa-monitoring-notification.iam.gserviceaccount.com"
+  ]
   depends_on = [var.pubsub_topic_depends_on]
 }
 
