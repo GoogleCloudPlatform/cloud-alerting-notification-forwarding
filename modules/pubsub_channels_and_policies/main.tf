@@ -25,8 +25,7 @@ data "google_project" "project" {
 resource "google_pubsub_topic_iam_binding" "binding" {
   project = var.project_id
   topic = var.topic
-  role = "roles/pubsub.publisher"
-  
+  role = "roles/pubsub.publisher"  
   members = [
       "serviceAccount:service-${data.google_project.project.number}@gcp-sa-monitoring-notification.iam.gserviceaccount.com"
   ]
