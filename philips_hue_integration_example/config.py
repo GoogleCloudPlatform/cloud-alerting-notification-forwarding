@@ -59,8 +59,8 @@ class ProdPhilipsHueConfig(PhilipsHueConfig):
     """Production Philips Hue config."""
 
     def __init__(self):
-        self._philips_hue_ip = None
-        self._philips_hue_username = None
+        self._philips_hue_ip = TestPhilipsHueConfig.BRIDGE_IP_ADDRESS
+        self._philips_hue_username = TestPhilipsHueConfig.USERNAME
         self._gcloud_project_id = os.environ.get('PROJECT_ID')
 
 
@@ -95,8 +95,8 @@ class DevPhilipsHueConfig(PhilipsHueConfig):
 
 
     def __init__(self):
-        self._philips_hue_ip = None
-        self._philips_hue_username = None
+        self._philips_hue_ip = TestPhilipsHueConfig.BRIDGE_IP_ADDRESS
+        self._philips_hue_username = TestPhilipsHueConfig.USERNAME
 
 
     @property
