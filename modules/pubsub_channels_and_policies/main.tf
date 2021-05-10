@@ -42,6 +42,7 @@ resource "google_monitoring_notification_channel" "pubsub" {
   }
 }
 
+
 # Create an alert policy with a Cloud Pubsub notification channel
 # https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/monitoring_alert_policy
 resource "google_monitoring_alert_policy" "alert_policy" {
