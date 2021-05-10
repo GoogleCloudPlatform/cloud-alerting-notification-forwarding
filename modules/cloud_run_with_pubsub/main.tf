@@ -46,7 +46,7 @@ resource "google_cloud_run_service" "cloud_run_pubsub_service" {
 # to the service).
 resource "google_cloud_run_service_iam_binding" "binding" {
   location  = google_cloud_run_service.cloud_run_pubsub_service.location
-  project   = google_cloud_run_service.cloud_run_pubsub_service..project
+  project   = google_cloud_run_service.cloud_run_pubsub_service.project
   service   = google_cloud_run_service.cloud_run_pubsub_service.name
   role      = "roles/run.invoker"
   members   = [
