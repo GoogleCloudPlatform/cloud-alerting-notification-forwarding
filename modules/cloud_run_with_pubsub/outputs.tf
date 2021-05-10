@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 output "url" {
-  value = "${google_cloud_run_service.cloud_run_pubsub_service.status[0].url}"
+  value       = "${google_cloud_run_service.cloud_run_pubsub_service.status[0].url}"
+  description = "Cloud Run Https Server URL used by the PubSub push subscription."
 }

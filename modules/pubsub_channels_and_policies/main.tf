@@ -40,7 +40,6 @@ resource "google_monitoring_notification_channel" "pubsub" {
   labels = {
     topic = var.topic
   }
-  depends_on = [var.pubsub_topic_depends_on]
 }
 
 # Create an alert policy with a Cloud Pubsub notification channel

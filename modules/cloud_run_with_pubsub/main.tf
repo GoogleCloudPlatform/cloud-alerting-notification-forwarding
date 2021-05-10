@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
+# Enable the Cloud Run service.
 resource "google_project_service" "run" {
   service  = "run.googleapis.com"
   project  = var.project
@@ -33,18 +33,20 @@ resource "google_cloud_run_service" "cloud_run_pubsub_service" {
       name = "cloud-run-pubsub-service-${uuid()}"
     }
   }
-
+  # TODO: enable Canary test. 
   traffic {
     percent         = 100
     latest_revision = true
   }
-  
+  # Waits for the Cloud Run service to be enabled.
   depends_on = [google_project_service.run]
 }
 
+# Enables the PubSub service account to invoke the Cloud Run service (i.e. to allow it to send PubSub messages
+# to the service).
 resource "google_cloud_run_service_iam_binding" "binding" {
   location  = google_cloud_run_service.cloud_run_pubsub_service.location
-  project   = var.project
+  project   = google_cloud_run_service.cloud_run_pubsub_service..project
   service   = google_cloud_run_service.cloud_run_pubsub_service.name
   role      = "roles/run.invoker"
   members   = [

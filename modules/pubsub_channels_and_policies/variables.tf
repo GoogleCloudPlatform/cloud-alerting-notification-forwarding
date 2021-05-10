@@ -12,13 +12,5 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 variable "project_id" {}
 variable "topic" {}
-
-variable "pubsub_topic_depends_on" {
-  # the value doesn't matter; we're just using this variable
-  # to propagate dependencies.
-  type    = any
-  default = []
-}

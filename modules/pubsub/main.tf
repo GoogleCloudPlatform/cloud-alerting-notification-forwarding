@@ -12,9 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Creates a PubSub topic for the PubSub channel.
 resource "google_pubsub_topic" "tf" {
   name    = var.topic
   project = var.project
+}
+
+# Service account used to generate the auth. tokens attached to the Https requests sent to the Cloud Run server.
+resource "google_service_account" "service_account" {
+  account_id   = "cloud-run-pubsub-invoker-wdzc"
+  display_name = "Cloud Run Pubsub Invoker created by wdzc"
+  project      = var.project
 }
 
 resource "google_pubsub_subscription" "push" {
@@ -24,7 +32,20 @@ resource "google_pubsub_subscription" "push" {
   push_config {
     push_endpoint = var.push_subscription.push_endpoint
     oidc_token {
-      service_account_email = var.push_subscription.auth_account
+      service_account_email = google_service_account.service_account.email
     }
   }
+}
+
+data "google_project" "project" {}
+
+# enable Pub/Sub to create authentication tokens in the project
+resource "google_project_iam_binding" "project" {
+  project = var.project
+  role    = "roles/iam.serviceAccountTokenCreator"
+
+  # Service account created by default.
+  members = [
+    "serviceAccount:service-${data.google_project.project.number}@gcp-sa-pubsub.iam.gserviceaccount.com"
+  ]
 }

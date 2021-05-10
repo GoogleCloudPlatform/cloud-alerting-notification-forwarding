@@ -14,10 +14,11 @@
 
 
 output "topic" {
-  value = "${google_pubsub_topic.tf.id}"
+  value       = "${google_pubsub_topic.tf.id}"
+  description = "The generated PubSub topic in the format 'projects/xxx/topics/yyy'"
+}
 
-  # Anything that refers to this output must wait until
-  # the actions for the items in the below list
-  # to have completed first.
-  depends_on = [google_pubsub_topic.tf]  
+output "pubsub_service_account_email" {
+  value       = "${google_service_account.service_account.email}"
+  description = "The service account used to authenticate the Https requests sent to the Cloud Run service"
 }
