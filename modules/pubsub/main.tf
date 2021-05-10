@@ -12,10 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Enable the Cloud PubSub service.
+resource "google_project_service" "pubsub" {
+  service  = "pubsub.googleapis.com"
+  project  = var.project
+}
+
+# Enable the Cloud IAM service.
+resource "google_project_service" "iam" {
+  service  = "iam.googleapis.com"
+  project  = var.project
+}
+
 # Creates a PubSub topic for the PubSub channel.
 resource "google_pubsub_topic" "tf" {
-  name    = var.topic
-  project = var.project
+  name       = var.topic
+  project    = var.project
+  depends_on = [google_project_service.pubsub]
 }
 
 # Service account used to generate the auth. tokens attached to the Https requests sent to the Cloud Run server.
@@ -23,6 +36,7 @@ resource "google_service_account" "service_account" {
   account_id   = "cloud-run-pubsub-invoker-wdzc"
   display_name = "Cloud Run Pubsub Invoker created by wdzc"
   project      = var.project
+  depends_on = [google_project_service.iam]
 }
 
 resource "google_pubsub_subscription" "push" {
