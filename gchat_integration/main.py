@@ -77,8 +77,8 @@ def send_monitoring_notification_to_third_party(notification):
     url = 'https://chat.googleapis.com/v1/spaces/AAAAHgCPlz4/messages?key=AIzaSyDdI0hCZtE6vySjMm-WEfRq3CPzqKqqsHI&token=ILvfE5si4Pdab8iVtxnZK3_QcPIJpB55XdhGjYZg9i0%3D'
     messages_headers = {'Content-Type': 'application/json; charset=UTF-8'}
 
-    # notification = message_format.parse_message(notification)
-    bot_message = {'text': notification}
+    bot_message = message_format.parse_message(notification)
+    # bot_message = {'text': notification}
 
     http_obj = Http()
 

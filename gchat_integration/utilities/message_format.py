@@ -17,7 +17,7 @@
 This module defines functions and errors to handle input from Google Monitoring,
 such as Pub/Sub notifications.
 """
-
+import json
 class Error(Exception):
     """Base class for all errors raised in this module."""
 
@@ -88,5 +88,23 @@ def parse_message(pubsub_message):
         'state: ' + incident_state + '\n'
         'ended_at: ' + incident_ended_at + '\n'
         'summary: ' + incident_summary + '\n')
-    
+
+    raw_msg = {
+        "cards": [
+            {
+                "sections": [
+                    {
+                        "widgets": [
+                            {
+                                "textParagraph": {
+                                    "text": "<b>Roses</b> are <font color=\"#ff0000\">red</font>,<br><i>Violets</i> are <font color=\"#0000ff\">blue</font>"
+                                }
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    } 
+    formatted_message = json.dumps(raw_msg)
     return formatted_message
