@@ -83,5 +83,4 @@ def parse_notification(notification, format='text'):
             }
         ]
     } 
-    formatted_message = json.dumps(raw_msg)
-    return formatted_message
+    return raw_msg
