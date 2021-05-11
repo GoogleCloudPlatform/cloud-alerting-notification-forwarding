@@ -52,9 +52,10 @@ def parse_notification(notification, format='text'):
         incident_ended_at = notification['incident']['ended_at']
         if incident_ended_at:
             incident_ended_at = datetime.datetime.utcfromtimestamp(int(incident_ended_at))
-            ended_time_str = incident_ended_at.strftime("%Y-%m-%d %H:%M:%S (UTC)") 
+            ended_time_str = incident_ended_at.strftime("%Y-%m-%d %H:%M:%S (UTC)")
+            ended_time_line = '<br><b>End At:</b> {}'.format(ended_time_str)  
         else:
-            ended_time_str = ''    
+            ended_time_line = ''    
         incident_summary = notification['incident']['summary']       
     except:
         print("failed to get notification fields %s" % notification)
@@ -77,7 +78,7 @@ def parse_notification(notification, format='text'):
                             },
                             {
                                 "textParagraph": {
-                                    "text": "<b>Start At:</b> {} <br><b>Current State:</b> {} <br><b>End At:</b> {} <br><b>Summary:</b> {}".format(started_time_str, incident_state, ended_time_str, incident_summary)
+                                    "text": "<b>Start At:</b> {} <br><b>Current State:</b> {}{}<br><b>Summary:</b> {}".format(started_time_str, incident_state, ended_time_line, incident_summary)
                                 }
                             },
                             {
