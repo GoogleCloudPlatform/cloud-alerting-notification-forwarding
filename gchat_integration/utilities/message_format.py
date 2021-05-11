@@ -63,16 +63,21 @@ def parse_notification(notification, format='text'):
     raw_msg = {
         "cards": [
             {
-                "header": {
-                    "title": "<b><font color=\"#0000FF\">Incident ID</font></b>: {}".format(incident_id),
-                    "subtitle": "<b><font color=\"#0000FF\">Alerting Policy</font></b>: {}".format(policy_name),
-                },
+                # "header": {
+                #    "title": "Incident ID: {}".format(incident_id),
+                #    "subtitle": "Alerting Policy: {}".format(policy_name),
+                #},
                 "sections": [
                     {
                         "widgets": [
                             {
                                 "textParagraph": {
-                                    "text": "<b>Start at:</b> {}, <br><b>Current State:</b> {}, <br><b>End at:</b> {}, <br><b>Summary:</b> {} ".format(started_time_str, incident_state, ended_time_str, incident_summary)
+                                    "text": "<b><font color=\"#0000FF\">Incident ID:</font></b> {}, <br><b><font color=\"#0000FF\">Alerting Policy:</font></b> {}".format(incident_id, policy_name)
+                                }
+                            },
+                            {
+                                "textParagraph": {
+                                    "text": "<b>Start At:</b> {} <br><b>Current State:</b> {} <br><b>End At:</b> {} <br><b>Summary:</b> {}".format(started_time_str, incident_state, ended_time_str, incident_summary)
                                 }
                             },
                             {
