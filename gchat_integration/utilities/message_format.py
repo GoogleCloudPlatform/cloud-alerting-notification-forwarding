@@ -27,18 +27,55 @@ def check_data(data):
     else:
         return data
 
-def parse_message(pubsub_message):
+def parse_notification(notification, format='text'):
+    """Converts the input message into a JSON object in the given format."""
+    if format not in ['text', 'cards']:
+        raise Error('Pubsub messages can only be parsed into two formats : "text" and "cards"!')
 
-    formatted_message = {
+    if format == 'text':
+        bot_message = {'text': json.dumps(notification)}
+        return bot_message
+
+    try:
+        incident_id = notification['incident']['incident_id']
+        started_time = notification['incident']['started_at']
+        policy_name = notification['incident']['policy_name']
+        incident_url = notification['incident']['url']
+        incident_state = notification['incident']['state']
+        incident_ended_at = notification['incident']['ended_at']
+        incident_summary = notification['incident']['summary']       
+    except:
+        print("failed to get notification fields %s" % notification)
+        raise 
+ 
+    raw_msg = {
         "cards": [
             {
+                "header": {
+                    "title": "Incident ID: {}".format(incident_id),
+                    "subtitle": "Alerting Policys: {}".format(policy_name),
+                },
                 "sections": [
                     {
                         "widgets": [
                             {
                                 "textParagraph": {
-                                    "text": "<b>Roses</b> are <font color=\"#ff0000\">red</font>,<br><i>Violets</i> are <font color=\"#0000ff\">blue</font>"
+                                    "text": "<b>Start at:</b> {}, <b>Current State:</b> {}, <b>End at:</b> {}, <b>Summary:</b> {} ".format(started_time, incident_state, incident_ended_at, incident_summary)
                                 }
+                            },
+                            {
+                                "buttons": [
+                                    {
+                                        "textButton": {
+                                            "text": "View Incident Details",
+                                            "onClick": {
+                                                "openLink": {
+                                                    "url": "{}".format(incident_url)
+                                                }
+                                            }
+                                        }
+                                    }
+                                ]
                             }
                         ]
                     }
@@ -46,5 +83,5 @@ def parse_message(pubsub_message):
             }
         ]
     } 
-    
+    formatted_message = json.dumps(raw_msg)
     return formatted_message

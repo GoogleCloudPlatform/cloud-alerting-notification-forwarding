@@ -46,8 +46,6 @@ app.config.from_object(app_config)
 @app.route('/', methods=['POST'])
 def handle_pubsub_message():
     pubsub_received_message = request.get_json()
-    pubsub_received_message = json.dumps(pubsub_received_message).replace('None', '""')
-    pubsub_received_message = json.loads(pubsub_received_message)
 
     # parse the Pub/Sub data
     try:
@@ -56,7 +54,14 @@ def handle_pubsub_message():
         logger.error(e)
         return (str(e), 400)
 
-    return send_monitoring_notification_to_third_party(pubsub_data_string)
+    # load the notification from the data
+    try:
+        monitoring_notification_dict = json.loads(pubsub_data_string)
+    except json.JSONDecodeError as e:
+        logger.error(e)
+        return (f'Notification could not be decoded due to the following exception: {e}', 400)
+
+    return send_monitoring_notification_to_third_party(monitoring_notification_dict)
 # [END run_pubsub_handler]
 
 
@@ -77,8 +82,7 @@ def send_monitoring_notification_to_third_party(notification):
     url = 'https://chat.googleapis.com/v1/spaces/AAAAHgCPlz4/messages?key=AIzaSyDdI0hCZtE6vySjMm-WEfRq3CPzqKqqsHI&token=ILvfE5si4Pdab8iVtxnZK3_QcPIJpB55XdhGjYZg9i0%3D'
     messages_headers = {'Content-Type': 'application/json; charset=UTF-8'}
 
-    bot_message = message_format.parse_message(notification)
-    # bot_message = {'text': notification}
+    bot_message = message_format.parse_notification(notification, format='cards')
 
     http_obj = Http()
 
@@ -87,7 +91,7 @@ def send_monitoring_notification_to_third_party(notification):
             uri = url,
             method = 'POST',
             headers = messages_headers,
-            body = json.dumps(bot_message, indent=4),
+            body = json.dumps(bot_message),
         )
         print(response)
     except Exception as e:
