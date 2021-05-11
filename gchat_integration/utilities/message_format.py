@@ -17,6 +17,7 @@
 This module defines functions and errors to handle input from Google Monitoring,
 such as Pub/Sub notifications.
 """
+import datetime
 import json
 class Error(Exception):
     """Base class for all errors raised in this module."""
@@ -39,10 +40,15 @@ def parse_notification(notification, format='text'):
     try:
         incident_id = notification['incident']['incident_id']
         started_time = notification['incident']['started_at']
+        started_time = datetime.datetime.utcfromtimestamp(int(started_time))
+        started_time_str = started_time.strftime("%Y-%m-%d %H:%M:%S (UTC)") 
+        
         policy_name = notification['incident']['policy_name']
         incident_url = notification['incident']['url']
         incident_state = notification['incident']['state']
         incident_ended_at = notification['incident']['ended_at']
+        incident_ended_at = datetime.datetime.utcfromtimestamp(int(incident_ended_at))
+        ended_time_str = incident_ended_at.strftime("%Y-%m-%d %H:%M:%S (UTC)") 
         incident_summary = notification['incident']['summary']       
     except:
         print("failed to get notification fields %s" % notification)
@@ -60,7 +66,7 @@ def parse_notification(notification, format='text'):
                         "widgets": [
                             {
                                 "textParagraph": {
-                                    "text": "<b>Start at:</b> {}, <b>Current State:</b> {}, <b>End at:</b> {}, <b>Summary:</b> {} ".format(started_time, incident_state, incident_ended_at, incident_summary)
+                                    "text": "<b>Start at:</b> {}, <br><b>Current State:</b> {}, <br><b>End at:</b> {}, <br><b>Summary:</b> {} ".format(started_time_str, incident_state, ended_time_str, incident_summary)
                                 }
                             },
                             {
