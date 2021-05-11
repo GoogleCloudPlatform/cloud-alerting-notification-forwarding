@@ -29,7 +29,7 @@ def check_data(data):
 
 def parse_message(pubsub_message):
 
-    raw_msg = {
+    formatted_message = {
         "cards": [
             {
                 "sections": [
@@ -46,5 +46,5 @@ def parse_message(pubsub_message):
             }
         ]
     } 
-    formatted_message = json.dumps(raw_msg)
+    
     return formatted_message
