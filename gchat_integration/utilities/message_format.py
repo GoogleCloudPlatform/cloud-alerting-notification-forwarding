@@ -40,15 +40,21 @@ def parse_notification(notification, format='text'):
     try:
         incident_id = notification['incident']['incident_id']
         started_time = notification['incident']['started_at']
-        started_time = datetime.datetime.utcfromtimestamp(int(started_time))
-        started_time_str = started_time.strftime("%Y-%m-%d %H:%M:%S (UTC)") 
+        if started_time:
+            started_time = datetime.datetime.utcfromtimestamp(int(started_time))
+            started_time_str = started_time.strftime("%Y-%m-%d %H:%M:%S (UTC)") 
+        else:
+            started_time_str = ''
         
         policy_name = notification['incident']['policy_name']
         incident_url = notification['incident']['url']
         incident_state = notification['incident']['state']
         incident_ended_at = notification['incident']['ended_at']
-        incident_ended_at = datetime.datetime.utcfromtimestamp(int(incident_ended_at))
-        ended_time_str = incident_ended_at.strftime("%Y-%m-%d %H:%M:%S (UTC)") 
+        if incident_ended_at:
+            incident_ended_at = datetime.datetime.utcfromtimestamp(int(incident_ended_at))
+            ended_time_str = incident_ended_at.strftime("%Y-%m-%d %H:%M:%S (UTC)") 
+        else:
+            ended_time_str = ''    
         incident_summary = notification['incident']['summary']       
     except:
         print("failed to get notification fields %s" % notification)
