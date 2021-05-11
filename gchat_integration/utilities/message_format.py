@@ -58,8 +58,8 @@ def parse_notification(notification, format='text'):
         "cards": [
             {
                 "header": {
-                    "title": "Incident ID: {}".format(incident_id),
-                    "subtitle": "Alerting Policys: {}".format(policy_name),
+                    "title": "<b><font color=\"#0000FF\">Incident ID</font></b>: {}".format(incident_id),
+                    "subtitle": "<b><font color=\"#0000FF\">Alerting Policy</font></b>: {}".format(policy_name),
                 },
                 "sections": [
                     {
