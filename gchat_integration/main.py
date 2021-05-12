@@ -78,7 +78,6 @@ def send_monitoring_notification_to_third_party(notification):
     """
 
     # url is the Incoming webhooks url for a gchat room
-    
     url = 'https://chat.googleapis.com/v1/spaces/AAAAHgCPlz4/messages?key=AIzaSyDdI0hCZtE6vySjMm-WEfRq3CPzqKqqsHI&token=ILvfE5si4Pdab8iVtxnZK3_QcPIJpB55XdhGjYZg9i0%3D'
     messages_headers = {'Content-Type': 'application/json; charset=UTF-8'}
 
