@@ -19,6 +19,11 @@ such as Pub/Sub notifications.
 """
 import datetime
 import json
+
+
+_RED_COLOR = '#FF0000'  # Red for open issues.
+_BLUE_COLOR = '#0000FF'  # Blue for closed issues.
+
 class Error(Exception):
     """Base class for all errors raised in this module."""
 
@@ -49,6 +54,10 @@ def parse_notification(notification, format='text'):
         policy_name = notification['incident']['policy_name']
         incident_url = notification['incident']['url']
         incident_state = notification['incident']['state']
+        header_color = _BLUE_COLOR
+        if incident_state == 'open':
+            header_color = _RED_COLOR
+
         incident_ended_at = notification['incident']['ended_at']
         if incident_ended_at:
             incident_ended_at = datetime.datetime.utcfromtimestamp(int(incident_ended_at))
@@ -73,7 +82,7 @@ def parse_notification(notification, format='text'):
                         "widgets": [
                             {
                                 "textParagraph": {
-                                    "text": "<b><font color=\"#0000FF\">Incident ID:</font></b> {}, <br><b><font color=\"#0000FF\">Alerting Policy:</font></b> {}".format(incident_id, policy_name)
+                                    "text": "<b><font color=\"{color}\">Incident ID:</font></b> {}, <br><b><font color=\"{color}\">Alerting Policy:</font></b> {}".format(incident_id, policy_name, color=header_color)
                                 }
                             },
                             {
