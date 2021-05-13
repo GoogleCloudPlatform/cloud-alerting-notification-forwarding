@@ -42,7 +42,7 @@ def load_channel_name_to_url_map(bucket_name):
     json_file = {
         "wdzc_policy_ch": url,
     }
-    client = storage.Client()
+    storage_client = storage.Client()
     # Set our bucket 
     bucket = storage_client.get_bucket(bucket_name)  
     blob = bucket.blob('channel_name_to_url_map.json')
