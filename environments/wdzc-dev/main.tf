@@ -40,13 +40,13 @@ module "cloud_run_with_pubsub" {
 module "cpu_channels_and_policies" {
   source                  = "../../modules/cpu_channels_and_policies"
 
-  topic                   = locals.cpu_pubsub_topic
+  topic                   = local.cpu_pubsub_topic
   project_id              = "${var.project}"
   pubsub_service_account_email = "${module.pubsub_service.pubsub_service_account_email}"
 
   push_subscription = {
       name              = "alert-push-subscription-wdzc-cpu"
-      push_endpoint     = "${module.cloud_run_with_pubsub.url}/${locals.cpu_pubsub_topic}"
+      push_endpoint     = "${module.cloud_run_with_pubsub.url}/${local.cpu_pubsub_topic}"
   }  
 }
 
@@ -54,12 +54,12 @@ module "cpu_channels_and_policies" {
 module "memory_channels_and_policies" {
   source                  = "../../modules/memory_channels_and_policies"
 
-  topic                   = locals.memory_pubsub_topic
+  topic                   = local.memory_pubsub_topic
   project_id              = "${var.project}"
   pubsub_service_account_email = "${module.pubsub_service.pubsub_service_account_email}"
 
   push_subscription = {
       name              = "alert-push-subscription-wdzc-cpu"
-      push_endpoint     = "${module.cloud_run_with_pubsub.url}/${locals.memory_pubsub_topic}"
+      push_endpoint     = "${module.cloud_run_with_pubsub.url}/${local.memory_pubsub_topic}"
   }  
 }
