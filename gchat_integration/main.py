@@ -28,14 +28,15 @@ from flask import Flask, request
 
 import config
 from httplib2 import Http
+from google.cloud import storage
 from utilities import pubsub, message_format
-
 
 app_config = config.load()
 logging.basicConfig(level=app_config.LOGGING_LEVEL)
 
 # logger inherits the logging level and handlers of the root logger
 logger = logging.getLogger(__name__)
+url_map = load_channel_name_to_url_map('url_config')
 
 app = Flask(__name__)
 app.config.from_object(app_config)
@@ -78,7 +79,7 @@ def send_monitoring_notification_to_third_party(notification):
     """
 
     # url is the Incoming webhooks url for a gchat room
-    url = 'https://chat.googleapis.com/v1/spaces/AAAAHgCPlz4/messages?key=AIzaSyDdI0hCZtE6vySjMm-WEfRq3CPzqKqqsHI&token=ILvfE5si4Pdab8iVtxnZK3_QcPIJpB55XdhGjYZg9i0%3D'
+    url = url_map['wdzc_policy_ch']
     messages_headers = {'Content-Type': 'application/json; charset=UTF-8'}
 
     bot_message = message_format.parse_notification(notification, format='cards')
@@ -97,6 +98,26 @@ def send_monitoring_notification_to_third_party(notification):
         return(str(e), 400)
     return(notification, 200)
 
+def load_channel_name_to_url_map(bucket_name):
+    url = 'https://chat.googleapis.com/v1/spaces/AAAAHgCPlz4/messages?key=AIzaSyDdI0hCZtE6vySjMm-WEfRq3CPzqKqqsHI&token=ILvfE5si4Pdab8iVtxnZK3_QcPIJpB55XdhGjYZg9i0%3D'
+    json_file = {
+        "wdzc_policy_ch": url,
+    }
+    client = storage.Client()
+    # Set our bucket 
+    bucket = storage_client.get_bucket(bucket_name)  
+    blob = bucket.blob('channel_name_to_url_map.json')
+    blob.upload_from_string(
+        data=json.dumps(json_file),
+        content_type='application/json'
+    )
+ 
+    bucket = storage_client.get_bucket(bucket_name)
+    blob = bucket.get_blob('channel_name_to_url_map.json')
+    fileData = json.loads(blob.download_as_string())
+    logging.info("the gcs json object is : %s", fileData)
+
+  
 if __name__ == '__main__':
     PORT = int(os.getenv('PORT')) if os.getenv('PORT') else 8080
     # This is used when running locally. Gunicorn is used to run the
