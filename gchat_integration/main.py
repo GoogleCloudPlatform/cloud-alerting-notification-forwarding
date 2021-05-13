@@ -87,11 +87,11 @@ def handle_pubsub_message(channel_name):
         logger.error(e)
         return (f'Notification could not be decoded due to the following exception: {e}', 400)
 
-    return send_monitoring_notification_to_third_party(monitoring_notification_dict)
+    return send_monitoring_notification_to_third_party(monitoring_notification_dict, channel_name)
 # [END run_pubsub_handler]
 
 
-def send_monitoring_notification_to_third_party(notification):
+def send_monitoring_notification_to_third_party(notification, channel_name):
     """Send a given monitoring notification to a third party service.
 
     Args:
@@ -104,7 +104,7 @@ def send_monitoring_notification_to_third_party(notification):
     """
 
     # url is the Incoming webhooks url for a gchat room
-    url = url_map['wdzc_policy_ch']
+    url = url_map[channel_name]
     messages_headers = {'Content-Type': 'application/json; charset=UTF-8'}
 
     bot_message = message_format.parse_notification(notification, format='cards')
