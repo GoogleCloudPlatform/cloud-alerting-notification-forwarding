@@ -103,6 +103,7 @@ def send_monitoring_notification_to_third_party(notification, channel_name):
         party service was successful.
     """
 
+
     # url is the Incoming webhooks url for a gchat room
     url = url_map[channel_name]
     messages_headers = {'Content-Type': 'application/json; charset=UTF-8'}
