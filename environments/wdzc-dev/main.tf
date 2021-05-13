@@ -15,30 +15,7 @@
 locals {
   pubsub_topic = "tf-topic-wdzc"
 }
+
 provider "google" {
   project = var.project
-}
-module "pubsub" {
-  source  = "../../modules/pubsub"
-  
-  topic              = local.pubsub_topic
-  project            = "${var.project}"
-
-  push_subscription = {
-      name              = "alert-push-subscription-wdzc"
-      push_endpoint     = "${module.cloud_run_with_pubsub.url}/${local.pubsub_topic}"
-  }
-}
-
-module "cloud_run_with_pubsub" {
-  source  = "../../modules/cloud_run_with_pubsub"
-  project = "${var.project}"
-  
-  pubsub_service_account_email = "${module.pubsub.pubsub_service_account_email}"
-}
-
-module "pubsub_channels_and_policies" {
-  source                  = "../../modules/pubsub_channels_and_policies"
-  topic                   = module.pubsub.topic
-  project_id              = "${var.project}"
 }
