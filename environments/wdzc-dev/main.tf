@@ -26,7 +26,7 @@ module "pubsub" {
 
   push_subscription = {
       name              = "alert-push-subscription-wdzc"
-      push_endpoint     = "${module.cloud_run_with_pubsub.url}"
+      push_endpoint     = "${module.cloud_run_with_pubsub.url}/${local.pubsub_topic}"
   }
 }
 
