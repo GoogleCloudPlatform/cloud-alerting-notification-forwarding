@@ -40,7 +40,7 @@ module "cloud_run_with_pubsub" {
 module "cpu_channels_and_policies" {
   source                  = "../../modules/cpu_channels_and_policies"
 
-  topic                   = "${locals.cpu_pubsub_topic}"
+  topic                   = locals.cpu_pubsub_topic
   project_id              = "${var.project}"
   pubsub_service_account_email = "${module.pubsub_service.pubsub_service_account_email}"
 
@@ -54,7 +54,7 @@ module "cpu_channels_and_policies" {
 module "memory_channels_and_policies" {
   source                  = "../../modules/memory_channels_and_policies"
 
-  topic                   = "${locals.memory_pubsub_topic}"
+  topic                   = locals.memory_pubsub_topic
   project_id              = "${var.project}"
   pubsub_service_account_email = "${module.pubsub_service.pubsub_service_account_email}"
 
