@@ -46,7 +46,7 @@ module "cpu_channels_and_policies" {
 
   push_subscription = {
       name              = "alert-push-subscription-wdzc-cpu"
-      push_endpoint     = "${module.cloud_run_with_pubsub.url}/${local.cpu_pubsub_topic}"
+      push_endpoint     = "${module.cloud_run_with_pubsub.url}/${locals.cpu_pubsub_topic}"
   }  
 }
 
@@ -60,6 +60,6 @@ module "memory_channels_and_policies" {
 
   push_subscription = {
       name              = "alert-push-subscription-wdzc-cpu"
-      push_endpoint     = "${module.cloud_run_with_pubsub.url}/${local.memory_pubsub_topic}"
+      push_endpoint     = "${module.cloud_run_with_pubsub.url}/${locals.memory_pubsub_topic}"
   }  
 }
