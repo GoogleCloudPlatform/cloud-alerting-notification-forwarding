@@ -14,3 +14,5 @@
 
 variable "project_id" {}
 variable "topic" {}
+variable "push_subscription" {}
+variable "pubsub_service_account_email" {}

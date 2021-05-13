@@ -18,7 +18,7 @@ resource "google_project_service" "run" {
   project  = var.project
 }
 
-
+# Creates a Cloud Run service to act as a gchat handler.
 resource "google_cloud_run_service" "cloud_run_pubsub_service" {
   name     = "cloud-run-pubsub-service"
   location = "us-east1"

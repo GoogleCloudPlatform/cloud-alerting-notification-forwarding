@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-variable "project" {}
-variable "topic" {}
-variable "push_subscription" {}
+output "pubsub_service_account_email" {
+  value       = "${google_service_account.service_account.email}"
+  description = "The service account used to authenticate the Https requests sent to the Cloud Run service"
+}

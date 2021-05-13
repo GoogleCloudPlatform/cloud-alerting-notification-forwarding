@@ -12,13 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-output "topic" {
-  value       = "${google_pubsub_topic.tf.id}"
-  description = "The generated PubSub topic in the format 'projects/xxx/topics/yyy'"
-}
-
-output "pubsub_service_account_email" {
-  value       = "${google_service_account.service_account.email}"
-  description = "The service account used to authenticate the Https requests sent to the Cloud Run service"
-}
+variable "project_id" {}
+variable "topic" {}
+variable "push_subscription" {}
+variable "pubsub_service_account_email" {}

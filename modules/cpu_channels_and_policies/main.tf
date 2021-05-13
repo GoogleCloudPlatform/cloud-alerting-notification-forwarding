@@ -21,6 +21,24 @@ data "google_project" "project" {
     project_id = var.project_id
 }
 
+# Creates a PubSub topic for the PubSub channel.
+resource "google_pubsub_topic" "tf" {
+  name       = var.topic
+  project    = var.project
+}
+
+resource "google_pubsub_subscription" "push" {
+  name = var.push_subscription.name
+  topic = google_pubsub_topic.tf.name
+  
+  push_config {
+    push_endpoint = var.push_subscription.push_endpoint
+    oidc_token {
+      service_account_email = var.pubsub_service_account_email
+    }
+  }
+}
+
 # To enable the Cloud PubSub channel as a publisher.
 resource "google_pubsub_topic_iam_binding" "binding" {
   project = var.project_id
@@ -35,7 +53,7 @@ resource "google_pubsub_topic_iam_binding" "binding" {
 # Create Cloud Pubsub notification channels.
 # See https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/monitoring_notification_channel
 resource "google_monitoring_notification_channel" "pubsub" {
-  display_name = "Cloud Pubsub Notification Channel for wdzc"
+  display_name = "Cloud Pubsub Notification Channel for ${var.topic}"
   type         = "pubsub"
   labels = {
     topic = var.topic
@@ -45,7 +63,7 @@ resource "google_monitoring_notification_channel" "pubsub" {
 # Create an alert policy with a Cloud Pubsub notification channel
 # https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/monitoring_alert_policy
 resource "google_monitoring_alert_policy" "alert_policy" {
-  display_name = "wdzc Alert Policy"
+  display_name = "wdzc Alert Policy: ${var.topic}"
   combiner     = "OR"
   conditions {
     display_name = "test condition"

@@ -13,9 +13,52 @@
 # limitations under the License.
 
 locals {
-  pubsub_topic = "tf-topic-wdzc"
+  cpu_pubsub_topic = "tf-topic-wdzc-cpu"
+  memory_pubsub_topic = "tf-topic-wdzc-memory"
 }
-
 provider "google" {
   project = var.project
+}
+
+# Setup all pubsub related services and service accounts.
+module "pubsub_service" {
+  source  = "../../modules/pubsub_service"
+
+  project            = "${var.project}"
+}
+
+# Setup the Cloud Run service.
+module "cloud_run_with_pubsub" {
+  source  = "../../modules/cloud_run_with_pubsub"
+
+  project = "${var.project}"
+  pubsub_service_account_email = "${module.pubsub_service.pubsub_service_account_email}"
+}
+
+# Setup a CPU usage alerting policy and its gchat notifcation channel.
+module "cpu_channels_and_policies" {
+  source                  = "../../modules/cpu_channels_and_policies"
+
+  topic                   = locals.cpu_pubsub_topic
+  project_id              = "${var.project}"
+  pubsub_service_account_email = "${module.pubsub_service.pubsub_service_account_email}"
+
+  push_subscription = {
+      name              = "alert-push-subscription-wdzc-cpu"
+      push_endpoint     = "${module.cloud_run_with_pubsub.url}/${local.cpu_pubsub_topic}"
+  }  
+}
+
+# Setup a memory usage alerting policy and its gchat notifcation channel.
+module "memory_channels_and_policies" {
+  source                  = "../../modules/memory_channels_and_policies"
+
+  topic                   = locals.memory_pubsub_topic
+  project_id              = "${var.project}"
+  pubsub_service_account_email = "${module.pubsub_service.pubsub_service_account_email}"
+
+  push_subscription = {
+      name              = "alert-push-subscription-wdzc-cpu"
+      push_endpoint     = "${module.cloud_run_with_pubsub.url}/${local.memory_pubsub_topic}"
+  }  
 }
