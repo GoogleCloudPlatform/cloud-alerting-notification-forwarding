@@ -18,7 +18,6 @@ locals {
 provider "google" {
   project = var.project
 }
-
 module "pubsub" {
   source  = "../../modules/pubsub"
   
