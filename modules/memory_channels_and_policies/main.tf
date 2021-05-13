@@ -70,8 +70,8 @@ resource "google_monitoring_alert_policy" "alert_policy" {
     condition_threshold {
       filter     = "metric.type=\"compute.googleapis.com/instance/disk/read_bytes_count\" AND resource.type=\"gce_instance\""
       duration   = "60s"
-      comparison = "COMPARISON_GT"
-      threshold_value = 0
+      comparison = "COMPARISON_LT"
+      threshold_value = 1048576  # 1024 * 1024 bytes
       trigger {
         count = 1
       }
