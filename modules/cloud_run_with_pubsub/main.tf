@@ -18,6 +18,7 @@ resource "google_project_service" "run" {
   project  = var.project
 }
 
+
 resource "google_cloud_run_service" "cloud_run_pubsub_service" {
   name     = "cloud-run-pubsub-service"
   location = "us-east1"
