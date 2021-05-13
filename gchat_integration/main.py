@@ -55,6 +55,7 @@ def load_channel_name_to_url_map(bucket_name):
     blob = bucket.get_blob('channel_name_to_url_map.json')
     fileData = json.loads(blob.download_as_string())
     logging.info("the gcs json object is : %s", fileData)
+    return fileData
 
 url_map = load_channel_name_to_url_map('url_config')
 
