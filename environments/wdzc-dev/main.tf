@@ -59,7 +59,7 @@ module "memory_channels_and_policies" {
   pubsub_service_account_email = "${module.pubsub_service.pubsub_service_account_email}"
 
   push_subscription = {
-      name              = "alert-push-subscription-wdzc-cpu"
+      name              = "alert-push-subscription-wdzc-memory"
       push_endpoint     = "${module.cloud_run_with_pubsub.url}/${local.memory_pubsub_topic}"
   }  
 }

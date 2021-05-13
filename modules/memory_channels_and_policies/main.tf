@@ -56,7 +56,7 @@ resource "google_monitoring_notification_channel" "pubsub" {
   display_name = "Cloud Pubsub Notification Channel for ${var.topic}"
   type         = "pubsub"
   labels = {
-    topic = var.topic
+    topic = google_pubsub_topic.tf.id
   }
 }
 
