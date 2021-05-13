@@ -15,7 +15,6 @@
 locals {
   pubsub_topic = "tf-topic-wdzc"
 }
-
 provider "google" {
   project = var.project
 }
