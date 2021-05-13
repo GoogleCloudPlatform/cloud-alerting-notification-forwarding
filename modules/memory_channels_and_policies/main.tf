@@ -18,31 +18,31 @@
 
 # To get the project number.
 data "google_project" "project" {
-    project_id = var.project_id
+    project_id = ${var.project_id}
 }
 
 # Creates a PubSub topic for the PubSub channel.
 resource "google_pubsub_topic" "tf" {
-  name       = var.topic
-  project    = var.project
+  name       = ${var.topic}
+  project    = ${var.project_id}
 }
 
 resource "google_pubsub_subscription" "push" {
-  name = var.push_subscription.name
+  name = ${var.push_subscription.name}
   topic = google_pubsub_topic.tf.name
   
   push_config {
-    push_endpoint = var.push_subscription.push_endpoint
+    push_endpoint = ${var.push_subscription.push_endpoint}
     oidc_token {
-      service_account_email = var.pubsub_service_account_email
+      service_account_email = ${var.pubsub_service_account_email}
     }
   }
 }
 
 # To enable the Cloud PubSub channel as a publisher.
 resource "google_pubsub_topic_iam_binding" "binding" {
-  project = var.project_id
-  topic = var.topic
+  project = ${var.project_id}
+  topic = ${var.topic}
   role = "roles/pubsub.publisher"  
   members = [
       "serviceAccount:service-${data.google_project.project.number}@gcp-sa-monitoring-notification.iam.gserviceaccount.com"
@@ -56,7 +56,7 @@ resource "google_monitoring_notification_channel" "pubsub" {
   display_name = "Cloud Pubsub Notification Channel for ${var.topic}"
   type         = "pubsub"
   labels = {
-    topic = var.topic
+    topic = ${var.topic}
   }
 }
 
