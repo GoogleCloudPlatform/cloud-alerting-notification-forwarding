@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 locals {
   cpu_pubsub_topic = "tf-topic-wdzc-cpu"
   memory_pubsub_topic = "tf-topic-wdzc-memory"
