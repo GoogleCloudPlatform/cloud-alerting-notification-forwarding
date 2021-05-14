@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Creates a Pubsub channel for the alerting policy.
 module "pubsub_channel" {
   source                  = "../../modules/pubsub_channel"
 
@@ -22,7 +23,7 @@ module "pubsub_channel" {
   push_subscription = var.push_subscription
 }
 
-# Create an alert policy with a Cloud Pubsub notification channel
+# Creates an alert policy with a Cloud Pubsub notification channel
 # https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/monitoring_alert_policy
 resource "google_monitoring_alert_policy" "alert_policy" {
   display_name = "wdzc Alert Policy: ${var.topic}"
@@ -30,10 +31,10 @@ resource "google_monitoring_alert_policy" "alert_policy" {
   conditions {
     display_name = "test condition"
     condition_threshold {
-      filter     = "metric.type=\"compute.googleapis.com/instance/cpu/usage_time\" AND resource.type=\"gce_instance\""
+      filter     = "metric.type=\"compute.googleapis.com/instance/disk/read_bytes_count\" AND resource.type=\"gce_instance\""
       duration   = "60s"
-      comparison = "COMPARISON_GT"
-      threshold_value = 0
+      comparison = "COMPARISON_LT"
+      threshold_value = 1048576  # 1024 * 1024 bytes
       trigger {
         count = 1
       }

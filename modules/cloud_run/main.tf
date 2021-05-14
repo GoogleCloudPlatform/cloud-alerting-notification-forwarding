@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Enable the Cloud Run service.
+# Enables the Cloud Run service.
 resource "google_project_service" "run" {
   service  = "run.googleapis.com"
   project  = var.project
