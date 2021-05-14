@@ -12,55 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 locals {
-  cpu_pubsub_topic = "tf-topic-wdzc-cpu"
-  disk_pubsub_topic = "tf-topic-wdzc-disk"
+  pubsub_topic = "tf-topic-wdzc"
 }
+
 provider "google" {
   project = var.project
-  version = "~> 3.65"  
-}
-
-# Setup all pubsub related services and service accounts.
-module "pubsub_service" {
-  source  = "../../modules/pubsub_service"
-
-  project            = "${var.project}"
-}
-
-# Setup the Cloud Run service.
-module "cloud_run_with_pubsub" {
-  source  = "../../modules/cloud_run_with_pubsub"
-
-  project = "${var.project}"
-  pubsub_service_account_email = "${module.pubsub_service.pubsub_service_account_email}"
-}
-
-# Setup a CPU usage alerting policy and its gchat notifcation channel.
-module "cpu_channels_and_policies" {
-  source                  = "../../modules/cpu_channels_and_policies"
-
-  topic                   = local.cpu_pubsub_topic
-  project_id              = "${var.project}"
-  pubsub_service_account_email = "${module.pubsub_service.pubsub_service_account_email}"
-
-  push_subscription = {
-      name              = "alert-push-subscription-wdzc-cpu"
-      push_endpoint     = "${module.cloud_run_with_pubsub.url}/${local.cpu_pubsub_topic}"
-  }  
-}
-
-# Setup a disk usage alerting policy and its gchat notifcation channel.
-module "disk_channels_and_policies" {
-  source                  = "../../modules/disk_channels_and_policies"
-
-  topic                   = local.disk_pubsub_topic
-  project_id              = "${var.project}"
-  pubsub_service_account_email = "${module.pubsub_service.pubsub_service_account_email}"
-
-  push_subscription = {
-      name              = "alert-push-subscription-wdzc-disk"
-      push_endpoint     = "${module.cloud_run_with_pubsub.url}/${local.disk_pubsub_topic}"
-  }  
 }
