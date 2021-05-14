@@ -50,3 +50,17 @@ module "cpu_channels_and_policies" {
       push_endpoint     = "${module.cloud_run_with_pubsub.url}/${local.cpu_pubsub_topic}"
   }  
 }
+
+# Setup a disk usage alerting policy and its gchat notifcation channel.
+module "disk_channels_and_policies" {
+  source                  = "../../modules/disk_channels_and_policies"
+
+  topic                   = local.disk_pubsub_topic
+  project_id              = "${var.project}"
+  pubsub_service_account_email = "${module.pubsub_service.pubsub_service_account_email}"
+
+  push_subscription = {
+      name              = "alert-push-subscription-wdzc-disk"
+      push_endpoint     = "${module.cloud_run_with_pubsub.url}/${local.disk_pubsub_topic}"
+  }  
+}
