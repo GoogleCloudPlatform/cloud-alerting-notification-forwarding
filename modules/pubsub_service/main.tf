@@ -19,6 +19,7 @@ resource "google_project_service" "pubsub" {
   disable_dependent_services=true   
 }
 
+
 # Enable the Cloud IAM service.
 resource "google_project_service" "iam" {
   service  = "iam.googleapis.com"
