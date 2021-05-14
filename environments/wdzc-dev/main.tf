@@ -19,6 +19,7 @@ locals {
 }
 provider "google" {
   project = var.project
+  version = "~> 3.65"  
 }
 
 # Setup all pubsub related services and service accounts.

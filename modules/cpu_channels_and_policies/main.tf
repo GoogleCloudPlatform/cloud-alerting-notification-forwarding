@@ -44,5 +44,5 @@ resource "google_monitoring_alert_policy" "alert_policy" {
       }
     }
   }
-  notification_channels =[google_monitoring_notification_channel.pubsub.name]
+  notification_channels =[module.pubsub_channel.notif_channel]
 }
