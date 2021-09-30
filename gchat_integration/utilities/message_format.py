@@ -51,6 +51,9 @@ def parse_notification(notification, format='text'):
         else:
             started_time_str = ''
         
+        incident_display_name = notification['incident']['condition']['displayName']
+        incident_condition_threshold = notification['incident']['condition']['conditionThreshold']
+        incident_resource_labels = notification['incident']['resource']['labels']
         policy_name = notification['incident']['policy_name']
         incident_url = notification['incident']['url']
         incident_state = notification['incident']['state']
@@ -82,7 +85,7 @@ def parse_notification(notification, format='text'):
                         "widgets": [
                             {
                                 "textParagraph": {
-                                    "text": "<b><font color=\"{color}\">Incident ID:</font></b> {}, <br><b><font color=\"{color}\">Alerting Policy:</font></b> {}".format(incident_id, policy_name, color=header_color)
+                                    "text": "<b><font color=\"{color}\">Summary:</font></b> {}, <br><b><font color=\"{color}\">State:</font></b> {}".format(incident_summary, incident_state, color=header_color)
                                 }
                             },
                             {
