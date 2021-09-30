@@ -90,7 +90,7 @@ def parse_notification(notification, format='text'):
                             },
                             {
                                 "textParagraph": {
-                                    "text": "<b>Start At:</b> {} <br><b>Current State:</b> {}{}<br><b>Summary:</b> {}".format(started_time_str, incident_state, ended_time_line, incident_summary)
+                                    "text": "<b>Condition Display Name:</b> {} <br><b>Start at:</b> {}{}<br><b>Incident Labels:</b> {}".format(incident_display_name, started_time_str, incident_resource_labels)
                                 }
                             },
                             {
