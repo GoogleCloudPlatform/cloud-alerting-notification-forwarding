@@ -82,7 +82,7 @@ def parse_notification(notification, format='text'):
                         "widgets": [
                             {
                                 "textParagraph": {
-                                    "text": "<b><font color=\"{color}\">Incident ID:</font></b> {}, <br><b><font color=\"{color}\">Alerting Policy:</font></b> {}".format(incident_id, policy_name, color=header_color)
+                                    "text": "<b><font color=\"{color}\">Summary:</font></b> {}, <br><b><font color=\"{color}\">Alerting Policy:</font></b> {}".format(incident_summary, policy_name, color=header_color)
                                 }
                             },
                             {

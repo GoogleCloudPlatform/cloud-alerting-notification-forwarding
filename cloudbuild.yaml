@@ -21,13 +21,13 @@
 # For more information about Terraform, you can find the documentation here:
 # https://www.terraform.io/docs/index.html
 #
-# If Cloud Build is run from a git branch named either "dev" or "wdzc-dev", 
+# If Cloud Build is run from a git branch named either "dev" or "master", 
 # the configuration will be applied to the cloud project provided via
 # environment variable $PROJECT_ID. Otherwise, the changes will be planned,
 # but not applied (dry run mode, which is useful when testing config changes
 # from a development branch).
 #
-# For dev and wdzc-dev branches, the following steps are executed:
+# For dev and master branches, the following steps are executed:
 # 1. terraform init
 # 2. terraform refresh
 # 3. terraform plan
@@ -54,7 +54,7 @@
 #    gcloud config set project PROD_PROJECT_ID
 # 2. Build and deploy the project
 #    cd ~/cloud-monitoring-notification-delivery-integration-sample-code
-#    gcloud builds submit . --config cloudbuild.yaml --substitutions BRANCH_NAME=wdzc-dev
+#    gcloud builds submit . --config cloudbuild.yaml --substitutions BRANCH_NAME=master
 
 
 steps:
@@ -90,7 +90,7 @@ steps:
   - '-c'
   - | 
       # check current branch
-      if [ "$BRANCH_NAME" = "dev" ] || [ "$BRANCH_NAME" = "wdzc-dev" ]; then
+      if [ "$BRANCH_NAME" = "dev" ] || [ "$BRANCH_NAME" = "master" ]; then
         echo "***********************"
         echo "Applying terraform configs from git branch $BRANCH_NAME"
         echo "to google cloud monitoring project $PROJECT_ID"
@@ -99,7 +99,7 @@ steps:
         echo "***********************"
         echo "[dry run mode] Planning terraform configs from git branch $BRANCH_NAME"
         echo "to google cloud monitoring project $PROJECT_ID."
-        echo "To apply the configs, rerun this command from git branch 'dev' or 'wdzc-dev'."
+        echo "To apply the configs, rerun this command from git branch 'dev' or 'master'."
         echo "***********************"  
       fi
 
@@ -110,7 +110,7 @@ steps:
   - '-c'
   - |
       # terraform initialization for dev or prod environments
-      if [ "$BRANCH_NAME" = "dev" ] || [ "$BRANCH_NAME" = "wdzc-dev" ]; then
+      if [ "$BRANCH_NAME" = "dev" ] || [ "$BRANCH_NAME" = "master" ]; then
         cd environments/$BRANCH_NAME
         echo ""
         echo "*************** TERRAFORM INIT ******************"
@@ -144,7 +144,7 @@ steps:
   - '-c'
   - |
       # refresh terraform state for dev or prod environments
-      if [ "$BRANCH_NAME" = "dev" ] || [ "$BRANCH_NAME" = "wdzc-dev" ]; then
+      if [ "$BRANCH_NAME" = "dev" ] || [ "$BRANCH_NAME" = "master" ]; then
         cd environments/$BRANCH_NAME
         echo ""
         echo "*************** TERRAFORM REFRESH ******************"
@@ -178,7 +178,7 @@ steps:
   - '-c'
   - | 
       # plan terraform changes for dev or prod environments
-      if [ "$BRANCH_NAME" = "dev" ] || [ "$BRANCH_NAME" = "wdzc-dev" ]; then
+      if [ "$BRANCH_NAME" = "dev" ] || [ "$BRANCH_NAME" = "master" ]; then
         cd environments/$BRANCH_NAME
         echo ""
         echo "*************** TERRAFORM PLAN ******************"
@@ -212,7 +212,7 @@ steps:
   - '-c'
   - | 
       # apply terraform changes for dev or prod environments only
-      if [ "$BRANCH_NAME" = "dev" ] || [ "$BRANCH_NAME" = "wdzc-dev" ]; then
+      if [ "$BRANCH_NAME" = "dev" ] || [ "$BRANCH_NAME" = "master" ]; then
         cd environments/$BRANCH_NAME      
         echo ""
         echo "*************** TERRAFORM APPLY ******************"
