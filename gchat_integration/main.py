@@ -26,13 +26,13 @@ import json
 
 from flask import Flask, request
 
-import config
+# import config
 from httplib2 import Http
 from google.cloud import storage
 from utilities import pubsub, message_format
 
-app_config = config.load()
-logging.basicConfig(level=app_config.LOGGING_LEVEL)
+# app_config = config.load()
+# logging.basicConfig(level=app_config.LOGGING_LEVEL)
 
 # logger inherits the logging level and handlers of the root logger
 logger = logging.getLogger(__name__)
@@ -48,8 +48,8 @@ def load_channel_name_to_url_map(bucket_name):
 
 url_map = load_channel_name_to_url_map('url_config_5')
 
-app = Flask(__name__)
-app.config.from_object(app_config)
+# app = Flask(__name__)
+# app.config.from_object(app_config)
 # [END run_pubsub_server_setup]
 
 
