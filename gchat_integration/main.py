@@ -46,7 +46,7 @@ def load_channel_name_to_url_map(bucket_name):
     logging.info("the gcs json object is : %s", fileData)
     return fileData
 
-url_map = load_channel_name_to_url_map('url_config_5')
+url_map = load_channel_name_to_url_map('url_config_oss-test-1021-1')
 
 app = Flask(__name__)
 # app.config.from_object(app_config)
