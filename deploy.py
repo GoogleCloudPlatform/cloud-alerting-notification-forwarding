@@ -2,7 +2,7 @@
 
 import subprocess
 import time
-project_id='oss-test-1021-2'
+project_id='oss-test-1021-1'
 subprocess.run(['gcloud config set project {project}'.format(project=project_id)], shell=True)
 subprocess.run(['gcloud services enable cloudbuild.googleapis.com'], shell=True)
 time.sleep(10)
