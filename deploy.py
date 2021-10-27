@@ -10,6 +10,8 @@ subprocess.run(['gcloud services enable cloudresourcemanager.googleapis.com'], s
 time.sleep(10)
 subprocess.run(['gcloud services enable serviceusage.googleapis.com'], shell=True)
 time.sleep(10)
+subprocess.run(['gcloud services enable cloudmonitoring.googleapis.com'], shell=True)
+time.sleep(10)
 result = subprocess.run(['gcloud projects describe {project} --format "value(projectNumber)"'.format(project=project_id)], shell=True, capture_output=True, text=True)
 cloudbuild_sa = result.stdout.strip() + '@cloudbuild.gserviceaccount.com'
 subprocess.run(['gcloud projects add-iam-policy-binding {project} --member serviceAccount:{cloudbuild} --role roles/editor'.format(project=project_id, cloudbuild=cloudbuild_sa)], shell=True)
