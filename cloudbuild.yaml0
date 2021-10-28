@@ -77,9 +77,10 @@ steps:
       # check if project id is set
       if [ -z "$PROJECT_ID" ]; then
         echo "***********************"
-        echo "TESTING LOCALLY"
-        echo "TESTING LOCALLY"
-        echo "TESTING LOCALLY"
+        echo "Missing required environment variable project_id."
+        echo "Set the project id by running 'gcloud config set project PROJECT_ID',"
+        echo "where PROJECT_ID is the Google Cloud Project ID that you want to deploy to."
+        echo "Then, rerun Cloud Build."
         echo "***********************"
       fi
 
@@ -89,19 +90,18 @@ steps:
   - '-c'
   - | 
       # check current branch
-      # if [ "$BRANCH_NAME" = "dev" ] || [ "$BRANCH_NAME" = "master" ]; then
-      echo "***********************"
-      echo "TESTING LOCALLY"
-      echo "TESTING LOCALLY"
-      echo "TESTING LOCALLY"
-      echo "***********************"  
-      # else
-      #   echo "***********************"
-      #   echo "[dry run mode] Planning terraform configs from git branch $BRANCH_NAME"
-      #   echo "to google cloud monitoring project $PROJECT_ID."
-      #   echo "To apply the configs, rerun this command from git branch 'dev' or 'master'."
-      #   echo "***********************"  
-      # fi
+      if [ "$BRANCH_NAME" = "dev" ] || [ "$BRANCH_NAME" = "master" ]; then
+        echo "***********************"
+        echo "Applying terraform configs from git branch $BRANCH_NAME"
+        echo "to google cloud monitoring project $PROJECT_ID"
+        echo "***********************"  
+      else
+        echo "***********************"
+        echo "[dry run mode] Planning terraform configs from git branch $BRANCH_NAME"
+        echo "to google cloud monitoring project $PROJECT_ID."
+        echo "To apply the configs, rerun this command from git branch 'dev' or 'master'."
+        echo "***********************"  
+      fi
 
 - id: 'tf init'
   name: 'hashicorp/terraform:0.12.28'
@@ -110,31 +110,31 @@ steps:
   - '-c'
   - |
       # terraform initialization for dev or prod environments
-      # if [ "$BRANCH_NAME" = "dev" ] || [ "$BRANCH_NAME" = "master" ]; then
-      cd environments/$BRANCH_NAME
-      echo ""
-      echo "TESTING LOCALLY"
-      echo "TESTING LOCALLY"
-      echo "TESTING LOCALLY"
-      terraform init -backend-config "bucket=$PROJECT_ID-tfstate"
+      if [ "$BRANCH_NAME" = "dev" ] || [ "$BRANCH_NAME" = "master" ]; then
+        cd environments/$BRANCH_NAME
+        echo ""
+        echo "*************** TERRAFORM INIT ******************"
+        echo "******* At environment: $BRANCH_NAME ********"
+        echo "*************************************************"
+        terraform init -backend-config "bucket=$PROJECT_ID-tfstate"
       # terraform initialization for all environments
-      # else
-      #   echo "***********************"
-      #   echo "initializing terraform for all environments"
-      #   echo "***********************"
-      #   for dir in environments/*/
-      #   do 
-      #     cd ${dir}   
-      #     env=${dir%*/}
-      #     env=${env#*/}
-      #     echo ""
-      #     echo "*************** TERRAFORM INIT ******************"
-      #     echo "******* At environment: ${env} ********"
-      #     echo "*************************************************"
-      #     terraform init -backend-config "bucket=$PROJECT_ID-tfstate" || exit 1
-      #     cd ../../
-      #   done
-      # fi 
+      else
+        echo "***********************"
+        echo "initializing terraform for all environments"
+        echo "***********************"
+        for dir in environments/*/
+        do 
+          cd ${dir}   
+          env=${dir%*/}
+          env=${env#*/}
+          echo ""
+          echo "*************** TERRAFORM INIT ******************"
+          echo "******* At environment: ${env} ********"
+          echo "*************************************************"
+          terraform init -backend-config "bucket=$PROJECT_ID-tfstate" || exit 1
+          cd ../../
+        done
+      fi 
   timeout: 300s # 5 minutes
 
 - id: 'tf refresh'
@@ -144,31 +144,31 @@ steps:
   - '-c'
   - |
       # refresh terraform state for dev or prod environments
-      # if [ "$BRANCH_NAME" = "dev" ] || [ "$BRANCH_NAME" = "master" ]; then
-      cd environments/$BRANCH_NAME
-      echo ""
-      echo "TESTING LOCALLY"
-      echo "TESTING LOCALLY"
-      echo "TESTING LOCALLY"
-      terraform refresh -var="project=$PROJECT_ID"
+      if [ "$BRANCH_NAME" = "dev" ] || [ "$BRANCH_NAME" = "master" ]; then
+        cd environments/$BRANCH_NAME
+        echo ""
+        echo "*************** TERRAFORM REFRESH ******************"
+        echo "******* At environment: $BRANCH_NAME ********"
+        echo "*************************************************"
+        terraform refresh -var="project=$PROJECT_ID"
       # refresh terraform state for all environments
-      # else
-      #   echo "***********************"
-      #   echo "refreshing terraform for all environments"
-      #   echo "***********************"
-      #   for dir in environments/*/
-      #   do 
-      #     cd ${dir}   
-      #     env=${dir%*/}
-      #     env=${env#*/}
-      #     echo ""
-      #     echo "*************** TERRAFORM REFRESH ******************"
-      #     echo "******* At environment: ${env} ********"
-      #     echo "*************************************************"
-      #     terraform refresh -var="project=$PROJECT_ID" || exit 1
-      #     cd ../../
-      #   done
-      # fi 
+      else
+        echo "***********************"
+        echo "refreshing terraform for all environments"
+        echo "***********************"
+        for dir in environments/*/
+        do 
+          cd ${dir}   
+          env=${dir%*/}
+          env=${env#*/}
+          echo ""
+          echo "*************** TERRAFORM REFRESH ******************"
+          echo "******* At environment: ${env} ********"
+          echo "*************************************************"
+          terraform refresh -var="project=$PROJECT_ID" || exit 1
+          cd ../../
+        done
+      fi 
   timeout: 300s # 5 minutes
 
 - id: 'tf plan'
@@ -178,31 +178,31 @@ steps:
   - '-c'
   - | 
       # plan terraform changes for dev or prod environments
-      # if [ "$BRANCH_NAME" = "dev" ] || [ "$BRANCH_NAME" = "master" ]; then
+      if [ "$BRANCH_NAME" = "dev" ] || [ "$BRANCH_NAME" = "master" ]; then
         cd environments/$BRANCH_NAME
         echo ""
-        echo "TESTING LOCALLY"
-        echo "TESTING LOCALLY"
-        echo "TESTING LOCALLY"
+        echo "*************** TERRAFORM PLAN ******************"
+        echo "******* At environment: $BRANCH_NAME ********"
+        echo "*************************************************"
         terraform plan -var="project=$PROJECT_ID"
       # plan terraform changes for all environments
-      # else
-      #   echo "***********************"
-      #   echo "planning terraform for all environments"
-      #   echo "***********************"
-      #   for dir in environments/*/
-      #   do 
-      #     cd ${dir}   
-      #     env=${dir%*/}
-      #     env=${env#*/}  
-      #     echo ""
-      #     echo "*************** TERRAFOM PLAN ******************"
-      #     echo "******* At environment: ${env} ********"
-      #     echo "*************************************************"
-      #     terraform plan -var="project=$PROJECT_ID" || exit 1
-      #     cd ../../
-      #   done
-      # fi 
+      else
+        echo "***********************"
+        echo "planning terraform for all environments"
+        echo "***********************"
+        for dir in environments/*/
+        do 
+          cd ${dir}   
+          env=${dir%*/}
+          env=${env#*/}  
+          echo ""
+          echo "*************** TERRAFOM PLAN ******************"
+          echo "******* At environment: ${env} ********"
+          echo "*************************************************"
+          terraform plan -var="project=$PROJECT_ID" || exit 1
+          cd ../../
+        done
+      fi 
   timeout: 300s # 5 minutes
 
 - id: 'tf apply'
@@ -212,17 +212,18 @@ steps:
   - '-c'
   - | 
       # apply terraform changes for dev or prod environments only
-      # if [ "$BRANCH_NAME" = "dev" ] || [ "$BRANCH_NAME" = "master" ]; then
+      if [ "$BRANCH_NAME" = "dev" ] || [ "$BRANCH_NAME" = "master" ]; then
         cd environments/$BRANCH_NAME      
-        echo "TESTING LOCALLY"
-        echo "TESTING LOCALLY"
-        echo "TESTING LOCALLY"
+        echo ""
+        echo "*************** TERRAFORM APPLY ******************"
+        echo "******* At environment: $BRANCH_NAME ********"
+        echo "*************************************************"
         terraform apply -auto-approve -var="project=$PROJECT_ID"
-      # else
-      #   echo "***************************** SKIPPING APPLYING *******************************"
-      #   echo "Branch '$BRANCH_NAME' does not represent an official environment."
-      #   echo "*******************************************************************************"
-      # fi
+      else
+        echo "***************************** SKIPPING APPLYING *******************************"
+        echo "Branch '$BRANCH_NAME' does not represent an official environment."
+        echo "*******************************************************************************"
+      fi
   timeout: 600s # 10 minutes
 
 # set substitution variables
