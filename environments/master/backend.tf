@@ -1,4 +1,4 @@
-# Copyright 2020 Google LLC
+# Copyright 2021 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,10 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
+# Use a GCS bucket to save the Terraform state remotely.
+# GCS objects are encrypted and have good access control support.
 terraform {
   backend "gcs" {
-    bucket = "${var.tf_state_bucket}"
-    prefix = "env/wdzc-dev"
+    # bucket is overrided by the cloudbuid.yaml in the sample code.  
+    bucket = "gcs_remote_state_bucket"
+    prefix = "env/demo"
   }
 }
