@@ -194,14 +194,11 @@ class GchatHandler(ServiceHandler):
 
         http_obj = Http()
 
-        try:
-            response = http_obj.request(
-                uri = url,
-                method = 'POST',
-                headers = messages_headers,
-                body = message_body,
-            )
-            logging.info(response)
-        except Exception as e:
-            return(str(e), 400)
-        return(notification, 200)
+
+        response = http_obj.request(
+            uri = url,
+            method = 'POST',
+            headers = messages_headers,
+            body = message_body,
+        )
+        logging.info(response)

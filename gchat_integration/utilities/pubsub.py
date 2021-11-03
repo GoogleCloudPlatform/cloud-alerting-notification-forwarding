@@ -16,7 +16,7 @@
 
 import base64
 import binascii
-
+import json
 
 class Error(Exception):
     """Base class for all errors raised in this module."""
@@ -34,7 +34,7 @@ def ExtractNotificationFromPubSubMsg(pubsub_msg):
         The message itself should be a base64-encoded string.
 
     Returns:
-        The decoded 'data' value of provided Pub/Sub message, returned as a string.
+        The decoded 'data' value of the provided Pub/Sub message, returned as a json dictory.
 
     Raises:
         DataParseError: If data cannot be parsed.
@@ -54,4 +54,9 @@ def ExtractNotificationFromPubSubMsg(pubsub_msg):
     data_string = data_bytes.decode('utf-8')
     data_string = data_string.strip()
 
-    return data_string
+    try:
+        data_json = json.loads(data_string)
+    except json.JSONDecodeError as e:
+        raise DataParseError('data can not be loaded as a json object: {}'.format(e), 400)
+ 
+    return data_json

@@ -13,4 +13,4 @@
 # limitations under the License.
 
 # Default variable values.
-project="PROJECT_ID"
+project_id="PROJECT_ID"

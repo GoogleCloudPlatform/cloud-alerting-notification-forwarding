@@ -17,53 +17,62 @@
 # See https://cloud.google.com/run/docs/tutorials/pubsub for the accompanying
 # Cloud Run/PubSub solutions guide.
 
-"""Runs Cloud Monitoring Notification Integration app with Flask."""
+"""Runs Cloud Alerting Notification Integration app with Flask."""
 
-# [START run_pubsub_server_setup]
 import logging
 import os
 import json
 
 from flask import Flask, request
 
-# import config
 from httplib2 import Http
-from google.cloud import storage
+
 from utilities import config_server, pubsub, service_handler
 
 # logger inherits the logging level and handlers of the root logger
 logger = logging.getLogger(__name__)
+config_server = config_server.HardCodedConfigServer()
+gchat_handler = service_handler.GchatHandler()
+service_names_to_handlers = {
+    'google_chat': gchat_handler,
+}
 
-
-gcs_config_server = config_server.GcsConfigServer(_BUCKET_NAME, _CONFIG_FILE)
 app = Flask(__name__)
-# [END run_pubsub_server_setup]
-
 
 # [START run_pubsub_handler]
 @app.route('/<config_id>', methods=['POST'])
-def handle_pubsub_message(channel_name):
-    if channel_name not in url_map:
-        err_msg = 'Unknown channel name: %s' % channel_name
+def handle_pubsub_message(config_id):
+    try:
+        config_param = config_server.GetConfigParam(config_id)
+    except BaseException as e:
+        err_msg = 'Failed to get config parameters for {}: {}'.format(config_id, e)
         logging.error(err_msg)
         return(err_msg, 500)
-    pubsub_received_message = request.get_json()
+    if 'service_name' not in config_param:
+        err_msg = '"service_name" not found in the config parameters: {}'.format(config_id)
+        logging.error(err_msg)
+        return(err_msg, 500)
+    if config_param['service_name'] not in service_names_to_handlers:
+        err_msg = 'No handler found for the service {}'.format(config_param['service_name'])
+        logging.error(err_msg)
+        return(err_msg, 500)
 
-    # parse the Pub/Sub data
+    handler = service_names_to_handlers[config_param['service_name']]
+    
+    # Parse the Pub/Sub raw message to get the notification
+    pubsub_received_message = request.get_json()
     try:
-        pubsub_data_string = pubsub.parse_data_from_message(pubsub_received_message)
+        notification = pubsub.ExtractNotificationFromPubSubMsg(pubsub_received_message)
     except pubsub.DataParseError as e:
         logger.error(e)
         return (str(e), 400)
 
-    # load the notification from the data
     try:
-        monitoring_notification_dict = json.loads(pubsub_data_string)
-    except json.JSONDecodeError as e:
+        handler.SendNotification(config_param, notification)
+    except BaseException as e:
         logger.error(e)
-        return (f'Notification could not be decoded due to the following exception: {e}', 400)
-
-    return send_monitoring_notification_to_third_party(monitoring_notification_dict, channel_name)
+        return (str(e), 400)
+    return (str(notification) ,200)    
 # [END run_pubsub_handler]
 
   

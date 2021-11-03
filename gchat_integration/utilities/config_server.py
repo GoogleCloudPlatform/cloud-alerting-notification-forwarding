@@ -17,7 +17,7 @@
 import abc
 import json
 import logging
-from typing import Any, Text
+from typing import Any, Dict, Text
 from google.cloud import storage
 
 class Error(Exception):
@@ -40,17 +40,16 @@ class ConfigServer(abc.ABC):
     """Abstract base class that represents a configuration server."""
 
     @abc.abstractmethod
-    def GetConfigParam(self, config_id: Text, param_name: Text) -> Any:
-        """Retrieves a parameter from a given configuration.
+    def GetConfigParam(self, config_id: Text) -> Dict[Text, Any]:
+        """Retrieves the config parameters from a given configuration.
         Args:
            config_id: The id of the configuration to retrieve.
-           param_name: The name of the parame to retrieve.
 
         Returns:
-            The corresponding parameter value.
+            The corresponding config parameters.
        
         Raises:
-            Any exception raised when retrieving the param. value.  
+            Any exception raised when retrieving the config parameters.  
         """
         pass
 
@@ -98,22 +97,26 @@ class GcsConfigServer(ConfigServer):
         logging.info('Sucessfully loaded the config data from {bucket_name}/{file_name}'.format(
                 bucket_name=bucket_name, file_name=file_name))
 
-    def GetConfigParam(self, config_id: Text, param_name: Text) -> Any:
-        """Retrieves a parameter from a given configuration."""
+    def GetConfigParam(self, config_id: Text) -> Any:
+        """Retrieves the configuration."""
         try:
-            return self._config_map[config_id][param_name]
+            return self._config_map[config_id]
         except BaseException as e:
-            err_msg = 'Failed to get the configuration parameter {param_name}: {e}'.format(
-                param_name=param_name, e=e)
+            err_msg = 'Failed to get the configuration parameter {config_id}: {e}'.format(
+                config_id=config_id, e=e)
             raise ParamNotFoundError(err_msg)
 
 
 class HardCodedConfigServer(ConfigServer):
     """Simple hard coded config server"""
-    def __init__(self)
+    def __init__(self):
         self._config_map = {
-            
-
+            'tf-topic-cpu': {
+                'service_name': 'google_chat',
+                'webhook_url': ('https://chat.googleapis.com/v1/spaces/AAAAjOjX3I0/messages?'              'key=AIzaSyDdI0hCZtE6vySjMm-WEfRq3CPzqKqqsHI&token=e9mcRhsfwYw51zvyTJ5ckw7YVC8ViR8bl7dtP8UrJGY%3D')},
+            'tf-topic-disk': {
+                'service_name': 'google_chat',
+                'webhook_url': ('https://chat.googleapis.com/v1/spaces/AAAA9xJV6L8/messages?' 'key=AIzaSyDdI0hCZtE6vySjMm-WEfRq3CPzqKqqsHI&token=cgLW9UExTH8kipz2cBOaj51LOa4d2OJmdsXJkX8-Fas%3D')}
         }
         if not isinstance(self._config_map, dict):
             raise InvalidConfigData('The configuration is not a dict json object')
@@ -122,14 +125,11 @@ class HardCodedConfigServer(ConfigServer):
             if not (isinstance(k, str) and isinstance(v, dict)):
                 raise InvalidConfigData('The configuration must be a Dict[str, Dict] object.')
 
-        logging.info('Sucessfully loaded the config data from {bucket_name}/{file_name}'.format(
-                bucket_name=bucket_name, file_name=file_name))
-
-    def GetConfigParam(self, config_id: Text, param_name: Text) -> Any:
-        """Retrieves a parameter from a given configuration."""
+    def GetConfigParam(self, config_id: Text) -> Any:
+        """Retrieves the configuration parameters."""
         try:
-            return self._config_map[config_id][param_name]
+            return self._config_map[config_id]
         except BaseException as e:
-            err_msg = 'Failed to get the configuration parameter {param_name}: {e}'.format(
-                param_name=param_name, e=e)
-            raise ParamNotFoundError(err_msg)        
+            err_msg = 'Failed to get the configuration parameter {config_id}: {e}'.format(
+                config_id=config_id, e=e)
+            raise ParamNotFoundError(err_msg)
