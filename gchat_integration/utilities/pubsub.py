@@ -12,11 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Module to handle input from Google Monitoring.
-
-This module defines functions and errors to handle input from Google Monitoring,
-such as Pub/Sub notifications.
-"""
+"""Module to extract notification data for a generic Pubsub message."""
 
 import base64
 import binascii
@@ -30,11 +26,11 @@ class DataParseError(Error):
     """Raised when the encoded 'data' field of a Pub/Sub message cannot be parsed."""
 
 
-def parse_data_from_message(pubsub_received_message):
+def ExtractNotificationFromPubSubMsg(pubsub_msg):
     """Parses notification messages from Pub/Sub.
 
     Args:
-        pubsub_received_message: Dictionary containing the Pub/Sub message.
+        pubsub_msg: Dictionary containing the Pub/Sub message.
         The message itself should be a base64-encoded string.
 
     Returns:
@@ -44,7 +40,7 @@ def parse_data_from_message(pubsub_received_message):
         DataParseError: If data cannot be parsed.
     """
     try:
-        data_base64_string = pubsub_received_message['message']['data']
+        data_base64_string = pubsub_msg['message']['data']
     except (KeyError, TypeError) as e:
         raise DataParseError('invalid Pub/Sub message format') from e
 

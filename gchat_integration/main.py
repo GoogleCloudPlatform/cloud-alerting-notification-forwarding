@@ -1,4 +1,4 @@
-# Copyright 2019 Google, LLC.
+# Copyright 2021 Google, LLC.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -29,32 +29,19 @@ from flask import Flask, request
 # import config
 from httplib2 import Http
 from google.cloud import storage
-from utilities import pubsub, message_format
-
-# app_config = config.load()
-# logging.basicConfig(level=app_config.LOGGING_LEVEL)
+from utilities import config_server, pubsub, service_handler
 
 # logger inherits the logging level and handlers of the root logger
 logger = logging.getLogger(__name__)
 
-def load_channel_name_to_url_map(bucket_name):
-    storage_client = storage.Client()
- 
-    bucket = storage_client.get_bucket(bucket_name)
-    blob = bucket.get_blob('channel_name_to_url_map.json')
-    fileData = json.loads(blob.download_as_string())
-    logging.info("the gcs json object is : %s", fileData)
-    return fileData
 
-url_map = load_channel_name_to_url_map('url_config_oss-test-1021-1')
-
+gcs_config_server = config_server.GcsConfigServer(_BUCKET_NAME, _CONFIG_FILE)
 app = Flask(__name__)
-# app.config.from_object(app_config)
 # [END run_pubsub_server_setup]
 
 
 # [START run_pubsub_handler]
-@app.route('/<channel_name>', methods=['POST'])
+@app.route('/<config_id>', methods=['POST'])
 def handle_pubsub_message(channel_name):
     if channel_name not in url_map:
         err_msg = 'Unknown channel name: %s' % channel_name
@@ -79,39 +66,6 @@ def handle_pubsub_message(channel_name):
     return send_monitoring_notification_to_third_party(monitoring_notification_dict, channel_name)
 # [END run_pubsub_handler]
 
-
-def send_monitoring_notification_to_third_party(notification, channel_name):
-    """Send a given monitoring notification to a third party service.
-
-    Args:
-        notification: A dictionary with the parsed out pubsub notificaiton message.
-
-    Returns:
-        A tuple containing an HTTP response message and HTTP status code
-        indicating whether or not sending the notification to the third
-        party service was successful.
-    """
-
-
-    # url is the Incoming webhooks url for a gchat room
-    url = url_map[channel_name]
-    messages_headers = {'Content-Type': 'application/json; charset=UTF-8'}
-
-    bot_message = message_format.parse_notification(notification, format='cards')
-
-    http_obj = Http()
-
-    try:
-        response = http_obj.request(
-            uri = url,
-            method = 'POST',
-            headers = messages_headers,
-            body = json.dumps(bot_message),
-        )
-        print(response)
-    except Exception as e:
-        return(str(e), 400)
-    return(notification, 200)
   
 if __name__ == '__main__':
     PORT = int(os.getenv('PORT')) if os.getenv('PORT') else 8080

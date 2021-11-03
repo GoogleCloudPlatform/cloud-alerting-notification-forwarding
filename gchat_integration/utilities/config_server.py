@@ -106,3 +106,30 @@ class GcsConfigServer(ConfigServer):
             err_msg = 'Failed to get the configuration parameter {param_name}: {e}'.format(
                 param_name=param_name, e=e)
             raise ParamNotFoundError(err_msg)
+
+
+class HardCodedConfigServer(ConfigServer):
+    """Simple hard coded config server"""
+    def __init__(self)
+        self._config_map = {
+            
+
+        }
+        if not isinstance(self._config_map, dict):
+            raise InvalidConfigData('The configuration is not a dict json object')
+
+        for k, v in self._config_map:
+            if not (isinstance(k, str) and isinstance(v, dict)):
+                raise InvalidConfigData('The configuration must be a Dict[str, Dict] object.')
+
+        logging.info('Sucessfully loaded the config data from {bucket_name}/{file_name}'.format(
+                bucket_name=bucket_name, file_name=file_name))
+
+    def GetConfigParam(self, config_id: Text, param_name: Text) -> Any:
+        """Retrieves a parameter from a given configuration."""
+        try:
+            return self._config_map[config_id][param_name]
+        except BaseException as e:
+            err_msg = 'Failed to get the configuration parameter {param_name}: {e}'.format(
+                param_name=param_name, e=e)
+            raise ParamNotFoundError(err_msg)        
