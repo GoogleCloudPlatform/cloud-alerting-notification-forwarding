@@ -37,7 +37,6 @@
 #    (replace DEV_PROJECT_ID with your dev GCP project id):
 #    gcloud config set project DEV_PROJECT_ID
 # 2. Manully trigger Cloud Build to set up resources in the project.
-#    cd ~/<WDZC: TBU>
 #    gcloud builds submit . --config cloudbuild.yaml --substitutions BRANCH_NAME=dev,DRY_RUN=true
 #
 # To test a build in your prod project manually:
@@ -45,7 +44,6 @@
 #    (replace PROD_PROJECT_ID with your prod GCP project id):
 #    gcloud config set project PROD_PROJECT_ID
 # 2. Manully trigger Cloud Build to set up resources in the project.
-#    cd ~/<WDZC: TBU>
 #    gcloud builds submit . --config cloudbuild.yaml --substitutions BRANCH_NAME=master,_DRY_RUN=false
 
 steps:
