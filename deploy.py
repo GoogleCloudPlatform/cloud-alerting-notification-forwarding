@@ -141,7 +141,7 @@ def _SetupTfRemoteState(project_id: Text):
 def _TriggerCloudBuild(branch: Text):
   """Triggers the Cloud Build to run the local cloudbuild.yaml file."""
   gcloud_cmd = ('gcloud builds submit . --config cloudbuild.yaml '
-                '--substitutions BRANCH_NAME={branch},_DRY_RUN=true').format(
+                '--substitutions BRANCH_NAME={branch},_DRY_RUN=false').format(
                   branch=branch)
   err_msg = 'Failed to trigger the cloud build for cloudbuild.yaml'
   _RunGcloudCommand(gcloud_cmd, err_msg)
