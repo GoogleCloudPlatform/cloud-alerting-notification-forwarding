@@ -42,7 +42,7 @@ class ServiceHandler(abc.ABC):
     def CheckServiceNameInConfigParam(self, config_param: Dict[str, Any])-> bool:
         """Ensures 'service_name' is in the config_param and set correctly. """        
         if not ('service_name' in config_param and config_param['service_name'] == self._service_name):
-            raise ConfigParamError('service_name is not set or different from {} : {}', format(
+            raise ConfigParamError('service_name is not set or different from {} : {}'.format(
                 self._service_name, config_param))
 
     @abc.abstractmethod
@@ -106,11 +106,11 @@ class GchatHandler(ServiceHandler):
         
         # The google chat room webhook url is needed to send the requests.
         if not ('webhook_url' in config_param and isinstance(config_param['webhook_url'], str)):
-            raise ConfigParamError('webhook_url is not set or not a string: {}', format(
+            raise ConfigParamError('webhook_url is not set or not a string: {}'.format(
                 config_param))
 
-        if not ('msg_format' in config_param and config_param in self._SUPPORTED_FORMAT):
-            raise ConfigParamError('msg_format is not set or not a valid option: {}', format(
+        if not ('msg_format' in config_param and config_param['msg_format'] in self._SUPPORTED_FORMAT):
+            raise ConfigParamError('msg_format is not set or not a valid option: {}'.format(
                 config_param))
                        
     def _BuildMessageBody(self, notification: Dict[str, Any], format: Text) -> Text:
@@ -124,7 +124,7 @@ class GchatHandler(ServiceHandler):
             started_time = notification['incident']['started_at']
             if started_time:
                 started_time = datetime.datetime.utcfromtimestamp(int(started_time))
-                started_time_str = started_time.strftime("%Y-%m-%d %H:%M:%S (UTC)") 
+                started_time_str = started_time.strftime('%Y-%m-%d %H:%M:%S (UTC)') 
             else:
                 started_time_str = ''
         
@@ -141,33 +141,33 @@ class GchatHandler(ServiceHandler):
                 incident_ended_at = datetime.datetime.utcfromtimestamp(int(incident_ended_at))
             incident_summary = notification['incident']['summary']       
         except:
-            print("failed to get notification fields %s" % notification)
+            logging.error('failed to get notification fields %s'.format(notification))
             raise 
  
         message_body = {
-            "cards": [
+            'cards': [
                 {
-                    "sections": [
+                    'sections': [
                         {
-                            "widgets": [
+                            'widgets': [
                                 {
-                                    "textParagraph": {
-                                        "text": "<b><font color=\"{color}\">Summary:</font></b> {}, <br><b><font    color=\"{color}\">State:</font></b> {}".format(incident_summary, incident_state, color=header_color)
+                                    'textParagraph': {
+                                        'text': '<b><font color="{color}">Summary:</font></b> {}, <br><b><font    color="{color}">State:</font></b> {}'.format(incident_summary, incident_state, color=header_color)
                                     }
                                 },
                                 {
-                                    "textParagraph": {
-                                        "text": "<b>Condition Display Name:</b> {} <br><b>Start at:</b> {}<br><b>Incident Labels:</b> {}".format(incident_display_name, started_time_str, incident_resource_labels)
+                                    'textParagraph': {
+                                        'text': '<b>Condition Display Name:</b> {} <br><b>Start at:</b> {}<br><b>Incident Labels:</b> {}'.format(incident_display_name, started_time_str, incident_resource_labels)
                                     }
                                 },
                                 {
-                                    "buttons": [
+                                    'buttons': [
                                         {
-                                            "textButton": {
-                                                "text": "View Incident Details",
-                                                "onClick": {
-                                                    "openLink": {
-                                                        "url": "{}".format(incident_url)
+                                            'textButton': {
+                                                'text': 'View Incident Details',
+                                                'onClick': {
+                                                    'openLink': {
+                                                        'url': '{}'.format(incident_url)
                                                     }
                                                 }
                                             }

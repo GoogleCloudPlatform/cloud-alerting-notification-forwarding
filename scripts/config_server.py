@@ -114,11 +114,11 @@ class HardCodedConfigServer(ConfigServer):
             'tf-topic-cpu': {
                 'service_name': 'google_chat',
                 'msg_format': 'card',
-                'webhook_url': ('https://chat.googleapis.com/v1/spaces/AAAAjOjX3I0/messages?'              'key=AIzaSyDdI0hCZtE6vySjMm-WEfRq3CPzqKqqsHI&token=e9mcRhsfwYw51zvyTJ5ckw7YVC8ViR8bl7dtP8UrJGY%3D')},
+                'webhook_url': 'https://chat.googleapis.com/v1/spaces/AAAAjOjX3I0/messages?key=AIzaSyDdI0hCZtE6vySjMm-WEfRq3CPzqKqqsHI&token=e9mcRhsfwYw51zvyTJ5ckw7YVC8ViR8bl7dtP8UrJGY%3D'},
             'tf-topic-disk': {
                 'service_name': 'google_chat',
                 'msg_format': 'card',
-                'webhook_url': ('https://chat.googleapis.com/v1/spaces/AAAA9xJV6L8/messages?' 'key=AIzaSyDdI0hCZtE6vySjMm-WEfRq3CPzqKqqsHI&token=cgLW9UExTH8kipz2cBOaj51LOa4d2OJmdsXJkX8-Fas%3D')}
+                'webhook_url': 'https://chat.googleapis.com/v1/spaces/AAAA9xJV6L8/messages?key=AIzaSyDdI0hCZtE6vySjMm-WEfRq3CPzqKqqsHI&token=cgLW9UExTH8kipz2cBOaj51LOa4d2OJmdsXJkX8-Fas%3D'}
         }
         if not isinstance(self._config_map, dict):
             raise InvalidConfigData('The configuration is not a dict json object')
