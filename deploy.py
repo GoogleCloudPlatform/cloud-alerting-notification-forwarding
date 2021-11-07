@@ -12,9 +12,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+#
 # A sample PY3 script that automatically setups a Cloud Pubsub + Google Chat
 # integration demo in a new project.
+# It will set the given project as the default gcloud project, enable all the
+# necessary services in the given project, set up the Google storage (GCS) 
+# bucket to save the Terraform remote state,  set up the IAM policies for 
+# the Cloud Build service account, and then trigger the Cloud Build. 
+#
 # To run this script, make sure that 
 #   a) Python 3 (3.5 or newer) and Google Cloud SDK are installed.
 #      See https://cloud.google.com/sdk/docs/install.
@@ -53,39 +58,46 @@ def _RunGcloudCommand(cmd: Text, err_msg: Text, wait_before_return_sec: int = 0
   except BaseException as e:
     print(err_msg)
     print('Exception raised {}'.format(e))
-    print(e)
     raise
   else:
     print('Sucessfully completed the command: {}'.format(cmd))     
     return result  
 
 def _SetProjectForInvocation(project_id: Text):
-  """Set the given project ID as the one to use for this invocation."""
+  """Sets the given project ID as the one to use for this invocation."""
   gcloud_cmd = 'gcloud config set project {project}'.format(project=project_id)
   err_msg = 'Failed to set the project ID for this invocation: {}'.format(
     project_id)
   _RunGcloudCommand(gcloud_cmd, err_msg)
 
 def _EnableCloudBuildService(project_id: Text):
-  """Enable the Google Cloud Build service."""
+  """Enables the Google Cloud Build service."""
   gcloud_cmd = 'gcloud services enable cloudbuild.googleapis.com'
   err_msg = 'Failed to enable the Cloud Build service for the project: {}'.format(
     project_id)
   _RunGcloudCommand(gcloud_cmd, err_msg)
 
 def _EnableCloudResourceManagerService(project_id: Text):
-  """Enable the Google Cloud Resource Manager serive."""
+  """Enables the Google Cloud Resource Manager serive."""
   gcloud_cmd = 'gcloud services enable cloudresourcemanager.googleapis.com'
   err_msg = ('Failed to enable the Cloud Resource Manager service for the '
              'project: {}').format(project_id)
-  _RunGcloudCommand(gcloud_cmd, err_msg, wait_before_return_sec=10)
+  _RunGcloudCommand(gcloud_cmd, err_msg, wait_before_return_sec=5)
 
 def _EnableCloudServiceUsageService(project_id: Text):
-  """Enable the Google Cloud Service Usage serive."""
+  """Enables the Google Cloud Service Usage serive."""
   gcloud_cmd = 'gcloud services enable serviceusage.googleapis.com'
   err_msg = ('Failed to enable the Cloud Service Usage service for the '
              'project: {}').format(project_id)
-  _RunGcloudCommand(gcloud_cmd, err_msg, wait_before_return_sec=10)
+  _RunGcloudCommand(gcloud_cmd, err_msg, wait_before_return_sec=5)
+
+def _EnableComputeEngineService(project_id: Text):
+  """Enables the Google Cloud Compute Engine serive."""
+  gcloud_cmd = 'gcloud services enable compute.googleapis.com'
+  err_msg = ('Failed to enable the Cloud Compute Engine service for the '
+             'project: {}').format(project_id)
+  # Enabling the compute engine service takes time, so wait for 15 seconds.           
+  _RunGcloudCommand(gcloud_cmd, err_msg, wait_before_return_sec=15)
 
 def _GetProjectNumberFromId(project_id: Text) -> Text:
   """Converts a project Id into its project number."""
@@ -129,34 +141,66 @@ def _SetupTfRemoteState(project_id: Text):
 def _TriggerCloudBuild(branch: Text):
   """Triggers the Cloud Build to run the local cloudbuild.yaml file."""
   gcloud_cmd = ('gcloud builds submit . --config cloudbuild.yaml '
-                '--substitutions BRANCH_NAME={branch}').format(
+                '--substitutions BRANCH_NAME={branch},_DRY_RUN=true').format(
                   branch=branch)
   err_msg = 'Failed to trigger the cloud build for cloudbuild.yaml'
   _RunGcloudCommand(gcloud_cmd, err_msg)
 
-# Set to a new project. Make sure the billing account is set.
-project_id='wdzc-oss-test-2'
-_SetProjectForInvocation(project_id)
+def _CreateVmInstance(project_id: Text, vm_name: Text, zone: Text):
+  """Creates a VM instance."""  
+  gcloud_cmd = 'gcloud compute instances create {vm_name} --zone={zone}'.format(
+    vm_name=vm_name, zone=zone)
+  err_msg = 'Failed to create a VM instance in {}'.format(zone)
+  _RunGcloudCommand(gcloud_cmd, err_msg)
 
-# Enable the Cloud Build Service, which is needed to trigger Cloud Build.  
-_EnableCloudBuildService(project_id)
+def main():
+  # Set the default gcloud project to a new project. Make sure the billing account is set.
+  project_id = 'wdzc-oss-1107-02'
+  print('---- Step 1: Set up the default gcloud project for the current invocation: {}'.format(project_id))
+  _SetProjectForInvocation(project_id)
 
-# Enable the Google Cloud Resource Manager serive, which is needed to manage
-# resources in Terraform.
-_EnableCloudResourceManagerService(project_id)
+  # Enable the Cloud Build Service, which is needed to trigger Cloud Build.  
+  print('---- Step 2: Enable the Cloud Build Service')
+  _EnableCloudBuildService(project_id)
 
-# Enable the Google Cloud Service Usage serive, which is needed to
-# enable/disable services in Terraform.
-_EnableCloudServiceUsageService(project_id)
+  # Enable the Google Cloud Resource Manager serive, which is needed to manage
+  # resources in Terraform.
+  print('---- Step 3: Enable the Cloud Resource Manager Service')
+  _EnableCloudResourceManagerService(project_id)
 
-# Grants necessary roles to the cloud build SA so it can run Terraform scripts. 
-cloud_build_sa_roles = set(
-  ['roles/editor', 'roles/iam.securityAdmin', 'roles/run.admin'])
-_GrantRolesToCloudBuildSa(project_id, cloud_build_sa_roles)
+  # Enable the Google Cloud Service Usage serive, which is needed to
+  # enable/disable services in Terraform.
+  print('---- Step 4: Enable the Cloud Service Usage Service')
+  _EnableCloudServiceUsageService(project_id)
 
-# Setups the GCS bucket for Terraform to save states remotely.
-_SetupTfRemoteState(project_id)
+  # Grants necessary roles to the cloud build SA so it can run Terraform scripts.
+  print('---- Step 5: Grant the Cloud Run service account necessary roles')
+  cloud_build_sa_roles = set(
+    ['roles/editor', 'roles/iam.securityAdmin', 'roles/run.admin'])
+  _GrantRolesToCloudBuildSa(project_id, cloud_build_sa_roles)
 
-# Manully trigger the Cloud Build.
-branch = 'master'  # The Git branch to use.
-_TriggerCloudBuild(branch)
+  # Setups the GCS bucket for Terraform to save states remotely.
+  print('---- Step 6: Set up a GCS bucket for Terraform to save states remotely')
+  _SetupTfRemoteState(project_id)
+
+  # Manully trigger the Cloud Build.
+  branch = 'master'  # The Git branch to use.
+  print('---- Step 7: Manually trigger the Cloud Build: branch = {}'.format(branch))
+  _TriggerCloudBuild(branch)
+
+  # Optional: Create a VM instance to trigger the alerting polices created with Terraform.
+  # If you don't want to automatically trigger the created alert policies, you can remove
+  # this step.
+  print('---- Step 8: Create a VM instance to trigger alert polices')
+  print('----   Step 8.1: Enable the Compute Engine service')
+  _EnableComputeEngineService(project_id)
+  print('----   Step 8.2: Create a VM instance')
+  vm_name = 'cloud-alerting-test-vm'
+  zone = 'us-east1-b'
+  _CreateVmInstance(project_id, vm_name, zone)
+  print('**** Congratulations, you successfully finished the cloud alerting integration demo setup, '
+        'please wait for your first alerting notification patiently!')
+
+
+if __name__ == '__main__':
+  main()
