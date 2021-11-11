@@ -47,5 +47,8 @@ resource "google_monitoring_alert_policy" "alert_policy" {
       }
     }
   }
+  user_labels = {
+    severity = "p0"
+  }
   notification_channels =[module.pubsub_channel.notif_channel]
 }

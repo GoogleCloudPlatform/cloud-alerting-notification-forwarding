@@ -143,7 +143,15 @@ class GchatHandler(ServiceHandler):
         except:
             logging.error('failed to get notification fields %s'.format(notification))
             raise 
- 
+
+        # Set the alert severity level if it is set in the user labels.
+        try:
+            incident_severity = notification['incident']['policy_user_labels']['severity']
+            incident_severity_display_str = ', <br><b><font    color="{color}">Severity:</font></b> {severity}'.format(severity=incident_severity, color=header_color)
+        except:
+            logging.error('Failed to extract the severity level info : {}'.format(notification))
+            incident_severity_display_str = ''
+
         message_body = {
             'cards': [
                 {
@@ -152,7 +160,7 @@ class GchatHandler(ServiceHandler):
                             'widgets': [
                                 {
                                     'textParagraph': {
-                                        'text': '<b><font color="{color}">Summary:</font></b> {}, <br><b><font    color="{color}">State:</font></b> {}'.format(incident_summary, incident_state, color=header_color)
+                                        'text': '<b><font color="{color}">Summary:</font></b> {}, <br><b><font    color="{color}">State:</font></b> {}{}'.format(incident_summary, incident_state, incident_severity_display_str, color=header_color)
                                     }
                                 },
                                 {
