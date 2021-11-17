@@ -50,7 +50,7 @@ steps:
 - id: 'build docker image'
   # Uses the docker build command to build a docker image for Cloud Run
   name: 'gcr.io/cloud-builders/docker'
-  args: ['build', '--build-arg', 'PROJECT_ID=$PROJECT_ID', '--tag', 'gcr.io/$PROJECT_ID/${_IMAGE_NAME}', './gchat_integration']
+  args: ['build', '--build-arg', 'PROJECT_ID=$PROJECT_ID', '--tag', 'gcr.io/$PROJECT_ID/${_IMAGE_NAME}', './notification_integration']
   timeout: 300s # 5 minutes
 
 - id: 'push docker image to Container Registry'

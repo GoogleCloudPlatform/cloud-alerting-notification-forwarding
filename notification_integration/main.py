@@ -31,7 +31,18 @@ from utilities import config_server, pubsub, service_handler
 
 # logger inherits the logging level and handlers of the root logger
 logger = logging.getLogger(__name__)
-config_server = config_server.HardCodedConfigServer()
+
+config_map = {
+    'tf-topic-cpu': {
+        'service_name': 'google_chat',
+        'msg_format': 'card',
+        'webhook_url': 'https://chat.googleapis.com/v1/spaces/AAAAjOjX3I0/messages?key=AIzaSyDdI0hCZtE6vySjMm-WEfRq3CPzqKqqsHI&token=e9mcRhsfwYw51zvyTJ5ckw7YVC8ViR8bl7dtP8UrJGY%3D'},
+    'tf-topic-disk': {
+        'service_name': 'google_chat',
+        'msg_format': 'card',
+        'webhook_url': 'https://chat.googleapis.com/v1/spaces/AAAA9xJV6L8/messages?key=AIzaSyDdI0hCZtE6vySjMm-WEfRq3CPzqKqqsHI&token=cgLW9UExTH8kipz2cBOaj51LOa4d2OJmdsXJkX8-Fas%3D'}
+}
+config_server = config_server.InMemoryConfigServer(config_map)
 gchat_handler = service_handler.GchatHandler()
 service_names_to_handlers = {
     'google_chat': gchat_handler,
@@ -43,7 +54,7 @@ app = Flask(__name__)
 @app.route('/<config_id>', methods=['POST'])
 def handle_pubsub_message(config_id):
     try:
-        config_param = config_server.GetConfigParam(config_id)
+        config_param = config_server.GetConfig(config_id)
     except BaseException as e:
         err_msg = 'Failed to get config parameters for {}: {}'.format(config_id, e)
         logging.error(err_msg)
@@ -67,12 +78,7 @@ def handle_pubsub_message(config_id):
         logger.error(e)
         return (str(e), 400)
 
-    try:
-        handler.SendNotification(config_param, notification)
-    except BaseException as e:
-        logger.error(e)
-        return (str(e), 400)
-    return (str(notification) ,200)    
+    return handler.SendNotification(config_param, notification)
 # [END run_pubsub_handler]
 
   
