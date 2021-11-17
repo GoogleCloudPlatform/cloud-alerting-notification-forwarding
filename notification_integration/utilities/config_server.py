@@ -45,11 +45,11 @@ class ParamNotFoundError(Error):
     pass
 
 
-# Private helper functions
+# Private helper functions.
 def _GetConfigFromConfigMap(config_id: Text, config_map: Dict[Text, Dict[Text, Any]]) -> Dict[Text, Any]:
     """Retrieves the configuration based on the config ID."""
     try:
-        return config_map[config_id]
+        return config_map[config_id]  # type: Dict[Text, Any]
     except BaseException as e:
         err_msg = f'Failed to get the configuration parameter {config_id}: {e}'
         raise ConfigNotFoundError(err_msg)

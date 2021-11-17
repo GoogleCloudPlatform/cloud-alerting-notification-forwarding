@@ -21,7 +21,6 @@ import logging
 
 from httplib2 import Http
 from typing import Any, Dict, Text, Tuple
-from google.cloud import storage
 from utilities import config_server
 
 class Error(Exception):
@@ -39,18 +38,18 @@ class ServiceHandler(abc.ABC):
         # service_name is the name of the service this handler is to integrate with.
         self._service_name = service_name
 
-    def CheckServiceNameInConfigParams(self, config_params: Dict[str, Any])-> bool:
+    def ValidateServiceNameInConfigParams(self, config_params: Dict[str, Any]):
         """Ensures 'service_name' is in the config_params and set correctly. """        
         if not ('service_name' in config_params and config_params['service_name'] == self._service_name):
             raise ConfigParamsError(f'service_name is not set or different from {self._service_name} : {config_params}')
 
     @abc.abstractmethod
-    def CheckConfigParams(self, config_params: Dict[str, Any]):
+    def CheckConfigParams(self, config_params: Dict[Text, Any]):
         """Checks if the given config params is a valid one that has all the necessary configs."""
         pass
 
     @abc.abstractmethod
-    def SendNotification(self, config_params: Dict[str, Any], notification: Dict[Any, Any]) -> Tuple[Text, int]:
+    def SendNotification(self, config_params: Dict[Text, Any], notification: Dict[Any, Any]) -> Tuple[Text, int]:
         """Sends a notification to a 3rd-party service endpoint.
 
         It uses the config_params to get the information about where/how to send notifications to a 3rd-party service,
@@ -77,7 +76,7 @@ class HttpRequestBasedHandler(ServiceHandler, abc.ABC):
         self._http_method = http_method
 
     @abc.abstractmethod
-    def _BuildHttpRequestBody(self, config_params: Dict[str, Any], notification: Dict[Any, Any]) -> Text:
+    def _BuildHttpRequestBody(self, config_params: Dict[Text, Any], notification: Dict[Any, Any]) -> Text:
         """Converts the notification into a http request body.
         
         Args:
@@ -153,34 +152,38 @@ class GchatHandler(HttpRequestBasedHandler):
     _SUPPORTED_FORMAT = set(['text', 'card'])
     _RED_COLOR = '#FF0000'  # Red for open issues.
     _BLUE_COLOR = '#0000FF'  # Blue for closed issues.
+    _GCHAT_SERVICE_NAME = 'google_chat'
+    _GCHAT_HTTP_METHOD = 'POST'
+    _URL_PARAM_NAME = 'webhook_url'
+    _FORMAT_PARAM_NAME = 'msg_format'
 
     def __init__(self):
-        super(GchatHandler, self).__init__('google_chat', 'POST')
+        super(GchatHandler, self).__init__(self._GCHAT_SERVICE_NAME, self._GCHAT_HTTP_METHOD)
 
-    def CheckConfigParams(self, config_params: Dict[str, Any]):
+    def CheckConfigParams(self, config_params: Dict[Text, Any]):
         """Checks if the given config params is a valid one that has all the necessary configs.
         
         The google chat handler  needs the webhook url of a google chat room and the format setting to forward the notifications.
         """
-        self.CheckServiceNameInConfigParams(config_params)
+        self.ValidateServiceNameInConfigParams(config_params)
         
         # The google chat room webhook url is needed to send the requests.
-        if not ('webhook_url' in config_params and isinstance(config_params['webhook_url'], str)):
-            raise ConfigParamsError('webhook_url is not set or not a string: {}'.format(
-                config_params))
+        if not (self._URL_PARAM_NAME in config_params and 
+                isinstance(config_params[self._URL_PARAM_NAME], str)):
+            raise ConfigParamsError(f'{self._URL_PARAM_NAME} is not set or not a string: {config_params}')
 
-        if not ('msg_format' in config_params and config_params['msg_format'] in self._SUPPORTED_FORMAT):
-            raise ConfigParamsError('msg_format is not set or not a valid option: {}'.format(
-                config_params))
+        if not (self._FORMAT_PARAM_NAME in config_params and
+                config_params[self._FORMAT_PARAM_NAME] in self._SUPPORTED_FORMAT):
+            raise ConfigParamsError(f'{self._FORMAT_PARAM_NAME} is not set or not a valid option: {config_params}')
                        
-    def _GetHttpUrl(self,  config_params: Dict[str, Any], notification: Dict[Any, Any]) -> Text:
-        return config_params['webhook_url']
+    def _GetHttpUrl(self,  config_params: Dict[Text, Any], notification: Dict[Any, Any]) -> Text:
+        return config_params[self._URL_PARAM_NAME]
 
-    def _BuildHttpRequestHeaders(self, config_params: Dict[str, Any], notification: Dict[Any, Any]) -> Dict[Text, Any]:
+    def _BuildHttpRequestHeaders(self, config_params: Dict[Text, Any], notification: Dict[Any, Any]) -> Dict[Text, Any]:
         http_headers = {'Content-Type': 'application/json; charset=UTF-8'}
         return http_headers
 
-    def _BuildHttpRequestBody(self, config_params: Dict[str, Any], notification: Dict[Any, Any]) -> Text:
+    def _BuildHttpRequestBody(self, config_params: Dict[Text, Any], notification: Dict[Any, Any]) -> Text:
         format = config_params['msg_format']
         """Converts the notification into a http request body."""
         if format == 'text':
@@ -258,7 +261,7 @@ class GchatHandler(HttpRequestBasedHandler):
         } 
         return json.dumps(message_body)
 
-    def SendNotification(self, config_params: Dict[str, Any], notification: Dict[Any, Any]):
+    def SendNotification(self, config_params: Dict[Text, Any], notification: Dict[Any, Any]):
         """Sends a notification to a Google chat room."""
         try:
             self.CheckConfigParams(config_params)
@@ -275,5 +278,3 @@ class GchatHandler(HttpRequestBasedHandler):
         except BaseException as e:
             logging.error(f'Failed to send the notification: {e}')
             return (str(e), 400)
-
-
