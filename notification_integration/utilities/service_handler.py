@@ -38,7 +38,7 @@ class ServiceHandler(abc.ABC):
         # service_name is the name of the service this handler is to integrate with.
         self._service_name = service_name
 
-    def ValidateServiceNameInConfigParams(self, config_params: Dict[str, Any]):
+    def CheckServiceNameInConfigParams(self, config_params: Dict[str, Any]):
         """Ensures 'service_name' is in the config_params and set correctly. """        
         if not ('service_name' in config_params and config_params['service_name'] == self._service_name):
             raise ConfigParamsError(f'service_name is not set or different from {self._service_name} : {config_params}')
@@ -165,7 +165,7 @@ class GchatHandler(HttpRequestBasedHandler):
         
         The google chat handler  needs the webhook url of a google chat room and the format setting to forward the notifications.
         """
-        self.ValidateServiceNameInConfigParams(config_params)
+        self.CheckServiceNameInConfigParams(config_params)
         
         # The google chat room webhook url is needed to send the requests.
         if not (self._URL_PARAM_NAME in config_params and 

@@ -48,7 +48,7 @@ class GchatHandlerTest(unittest.TestCase):
         self._http_mock = Mock(return_value=self._http_obj_mock)
         Http = self._http_mock
 
-    def testValidateServiceNameInConfigParamsFailed(self):
+    def testCheckServiceNameInConfigParamsFailed(self):
         handler = service_handler.GchatHandler()
         bad_configs = [
             {'service': _SERVICE_NAME},  # Bad key
@@ -56,8 +56,21 @@ class GchatHandlerTest(unittest.TestCase):
         ]
         for bad_config in bad_configs:     
             with self.assertRaises(service_handler.ConfigParamsError):
-                handler.ValidateServiceNameInConfigParams(bad_config)
+                handler.CheckServiceNameInConfigParams(bad_config)
 
+    def testCheckConfigParamsFailed(self):
+        handler = service_handler.GchatHandler()
+        bad_configs = [
+            {'service': _SERVICE_NAME},  # Bad service name key
+            {'service_name': 'wrong_xxx'},  # Bad service name value
+            {'service_name': 'google_chat', 'url': '123.com'},  # Bad url key
+            {'service_name': 'google_chat', 'webhook_url': 123},  # Bad url value
+            {'service_name': 'google_chat', 'webhook_url': '123.com', 'format': 'card'},  # Bad format key
+            {'service_name': 'google_chat', 'webhook_url': '123.com', 'msg_format': 'video'},  # Bad format value
+        ]
+        for bad_config in bad_configs:     
+            with self.assertRaises(service_handler.ConfigParamsError):
+                handler.CheckConfigParams(bad_config)
 
 if __name__ == '__main__':
     unittest.main()
