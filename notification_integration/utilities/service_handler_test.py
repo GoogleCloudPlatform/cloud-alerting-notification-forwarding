@@ -14,8 +14,8 @@
 
 """Unit tests for service_handler.py."""
 import json
+import httplib2
 import unittest
-from httplib2 import Http
 from unittest.mock import Mock
 from utilities import service_handler
 
@@ -27,7 +27,61 @@ _CONFIG_PARAMS = {'service_name': _SERVICE_NAME,
                   'webhook_url': 'https://chat.123.com',
                   'msg_format': 'card'
                  }
+_BAD_CONFIG_PARAMS = [
+    {'service': _SERVICE_NAME},  # Bad service name key
+    {'service_name': 'wrong_xxx'},  # Bad service name value
+    {'service_name': 'google_chat', 'url': '123.com'},  # Bad url key
+    {'service_name': 'google_chat', 'webhook_url': 123},  # Bad url value
+    {'service_name': 'google_chat', 'webhook_url': '123.com', 'format': 'card'},  # Bad format key
+    {'service_name': 'google_chat', 'webhook_url': '123.com', 'msg_format': 'video'},  # Bad format value
+]
 
+# Test notification json object.
+_NOTIF = {
+    "incident": {
+        "condition": {
+            "conditionThreshold": {
+                "aggregations": [
+                    {
+                        "alignmentPeriod": "60s",
+                        "crossSeriesReducer": "REDUCE_SUM",
+                        "perSeriesAligner": "ALIGN_SUM"
+                    }
+                ],
+                "comparison": "COMPARISON_GT",
+                "duration": "60s",
+                "filter": "metric.type=\"compute.googleapis.com/instance/cpu/usage_time\" AND resource.type=\"gce_instance\"",
+                "trigger": {
+                    "count": 1
+                }
+            },
+            "displayName": "test condition",
+            "name": "projects/tf-test/alertPolicies/3528831492076541324/conditions/3528831492076543949"
+        },
+        "condition_name": "test condition",
+        "ended_at": 1621359336,
+        "incident_id": "0.m2d61b3s6d5d",
+        "metric": {
+            "displayName": "CPU usage",
+            "type": "compute.googleapis.com/instance/cpu/usage_time"
+        },
+        "policy_name": "test Alert Policy",
+        "resource": {
+            "labels": {
+                "project_id": "tf-test"
+            },
+            "type": "gce_instance"
+        },
+        "resource_id": "",
+        "resource_name": "tf-test VM Instance labels {project_id=tf-test}",
+        "resource_type_display_name": "VM Instance",
+        "started_at": 1620754533,
+        "state": "closed",
+        "summary": "CPU usage for tf-test VM Instance labels {project_id=tf-test} returned to normal with a value of 0.081.",
+        "url": "https://console.cloud.google.com/monitoring/alerting/incidents/0.m2d61b3s6d5d?project=tf-test"
+    },
+    "version": "1.2"
+}
 
 class ServiceHandlerTest(unittest.TestCase):
     def testAbstactServiceHandlerCanNotBeInitialized(self):
@@ -46,7 +100,7 @@ class GchatHandlerTest(unittest.TestCase):
         # To mock the GCS blob returned by bucket.get_blob.        
         self._http_obj_mock = Mock()
         self._http_mock = Mock(return_value=self._http_obj_mock)
-        Http = self._http_mock
+        httplib2.Http = self._http_mock
 
     def testCheckServiceNameInConfigParamsFailed(self):
         handler = service_handler.GchatHandler()
@@ -60,17 +114,82 @@ class GchatHandlerTest(unittest.TestCase):
 
     def testCheckConfigParamsFailed(self):
         handler = service_handler.GchatHandler()
-        bad_configs = [
-            {'service': _SERVICE_NAME},  # Bad service name key
-            {'service_name': 'wrong_xxx'},  # Bad service name value
-            {'service_name': 'google_chat', 'url': '123.com'},  # Bad url key
-            {'service_name': 'google_chat', 'webhook_url': 123},  # Bad url value
-            {'service_name': 'google_chat', 'webhook_url': '123.com', 'format': 'card'},  # Bad format key
-            {'service_name': 'google_chat', 'webhook_url': '123.com', 'msg_format': 'video'},  # Bad format value
-        ]
-        for bad_config in bad_configs:     
+        for bad_config in _BAD_CONFIG_PARAMS:     
             with self.assertRaises(service_handler.ConfigParamsError):
                 handler.CheckConfigParams(bad_config)
+
+    def testSendNotificationFailedDueToBadConfig(self):
+        handler = service_handler.GchatHandler()
+        for bad_config in _BAD_CONFIG_PARAMS:     
+            _, status_code = handler.SendNotification(bad_config, _NOTIF)
+            self.assertEqual(status_code, 400)
+
+    def testSendNotificationFailedDueToUnexpectedCheckConfigParamsException(self):
+        handler = service_handler.GchatHandler()
+        # Set the config_param to None to cause exception.
+        _, status_code = handler.SendNotification(None, _NOTIF) 
+        self.assertEqual(status_code, 500)
+
+    def testSendNotificationFormatTextSucceed(self):
+        handler = service_handler.GchatHandler()
+        config_params = _CONFIG_PARAMS.copy()
+        config_params['msg_format'] = 'text'
+        self._http_obj_mock.request.return_value = httplib2.Response({'status': 200}), 'OK'
+        # Set the config_param to None to cause exception.
+        _, status_code = handler.SendNotification(config_params, _NOTIF) 
+        self.assertEqual(status_code, 200)
+        expected_body = (
+            '{"text": "{\\"incident\\": {\\"condition\\": {\\"conditionThreshold\\": '
+            '{\\"aggregations\\": [{\\"alignmentPeriod\\": \\"60s\\", '
+            '\\"crossSeriesReducer\\": \\"REDUCE_SUM\\", \\"perSeriesAligner\\":'
+            ' \\"ALIGN_SUM\\"}], \\"comparison\\": \\"COMPARISON_GT\\", '
+            '\\"duration\\": \\"60s\\", \\"filter\\": \\"metric.type=\\\\\\'
+            '"compute.googleapis.com/instance/cpu/usage_time\\\\\\" AND '
+            'resource.type=\\\\\\"gce_instance\\\\\\"\\", \\"trigger\\": '
+            '{\\"count\\": 1}}, \\"displayName\\": \\"test condition\\", \\"name\\":'
+            ' \\"projects/tf-test/alertPolicies/3528831492076541324/conditions/'
+            '3528831492076543949\\"}, \\"condition_name\\": \\"test condition\\",'
+            ' \\"ended_at\\": 1621359336, \\"incident_id\\": \\"0.m2d61b3s6d5d\\",'
+            ' \\"metric\\": {\\"displayName\\": \\"CPU usage\\", \\"type\\": '
+            '\\"compute.googleapis.com/instance/cpu/usage_time\\"}, \\"policy_name\\":'
+            ' \\"test Alert Policy\\", \\"resource\\": {\\"labels\\": '
+            '{\\"project_id\\": \\"tf-test\\"}, \\"type\\": \\"gce_instance\\"}, '
+            '\\"resource_id\\": \\"\\", \\"resource_name\\": \\"tf-test VM Instance '
+            'labels {project_id=tf-test}\\", \\"resource_type_display_name\\": \\"VM '
+            'Instance\\", \\"started_at\\": 1620754533, \\"state\\": \\"closed\\", '
+            '\\"summary\\": \\"CPU usage for tf-test VM Instance labels '
+            '{project_id=tf-test} returned to normal with a value of 0.081.\\", '
+            '\\"url\\": \\"https://console.cloud.google.com/monitoring/alerting/'
+            'incidents/0.m2d61b3s6d5d?project=tf-test\\"}, \\"version\\": \\"1.2\\"}"}'
+        )
+        self._http_obj_mock.request.assert_called_once_with(
+            uri='https://chat.123.com',
+            method='POST',
+            headers={'Content-Type': 'application/json; charset=UTF-8'},
+            body=expected_body,
+        )
+
+    def testSendNotificationFormatTextFailed(self):
+        handler = service_handler.GchatHandler()
+        config_params = _CONFIG_PARAMS.copy()
+        self._http_obj_mock.request.side_effect = Exception('unknown exception')
+        config_params['msg_format'] = 'text'
+        # Set the config_param to None to cause exception.
+        _, status_code = handler.SendNotification(config_params, _NOTIF) 
+        self.assertEqual(status_code, 400)
+        self._http_obj_mock.request.assert_called_once()
+
+    def testSendNotificationFormatTextNon200Status(self):
+        handler = service_handler.GchatHandler()
+        config_params = _CONFIG_PARAMS.copy()
+        self._http_obj_mock.request.return_value = httplib2.Response({'status': 500}), 'Server error'
+        config_params['msg_format'] = 'text'
+        # Set the config_param to None to cause exception.
+        _, status_code = handler.SendNotification(config_params, _NOTIF) 
+        self.assertEqual(status_code, 500)
+        self._http_obj_mock.request.assert_called_once()
+
+
 
 if __name__ == '__main__':
     unittest.main()

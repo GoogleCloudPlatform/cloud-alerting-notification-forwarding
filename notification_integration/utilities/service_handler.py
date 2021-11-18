@@ -16,10 +16,9 @@
 
 import abc
 import datetime
+import httplib2
 import json
 import logging
-
-from httplib2 import Http
 from typing import Any, Dict, Text, Tuple
 from utilities import config_server
 
@@ -45,7 +44,15 @@ class ServiceHandler(abc.ABC):
 
     @abc.abstractmethod
     def CheckConfigParams(self, config_params: Dict[Text, Any]):
-        """Checks if the given config params is a valid one that has all the necessary configs."""
+        """Checks if the given config params is a valid one that has all the necessary configs.
+        
+        Args:
+           config_params: A dictionary that includes information about where/how to send notifications to a 3rd-party service.
+
+        Raises:
+            Any exception raised when sending the notificaton.  
+        
+        """
         pass
 
     @abc.abstractmethod
@@ -123,23 +130,22 @@ class HttpRequestBasedHandler(ServiceHandler, abc.ABC):
         """
         pass
 
-    def SendNotification(self, config_params: Dict[str, Any], notification: Dict[Any, Any]):
-        """Sends a notification to a 3rd-party service via a http request."""
+    def _SendHttpRequest(self, config_params: Dict[str, Any], notification: Dict[Any, Any]) -> Tuple[httplib2.Response, Text]:
+        """Sends a http request to a 3rd-party service via a http request."""
         http_url = self._GetHttpUrl(config_params, notification)
         messages_headers = self._BuildHttpRequestHeaders(config_params, notification)
         message_body = self._BuildHttpRequestBody(config_params, notification)
 
-        http_obj = Http()
+        http_obj = httplib2.Http()
 
-        response = http_obj.request(
-            uri = http_url,
-            method = self._http_method,
-            headers = messages_headers,
-            body = message_body,
+        result = http_obj.request(
+            uri=http_url,
+            method=self._http_method,
+            headers=messages_headers,
+            body=message_body,
         )
-        logging.info(response)
-        return (str(notification) ,200)    
-
+        return result
+ 
     
 class GchatHandler(HttpRequestBasedHandler):
     """Handler that integrates the Google alerting pubsub chananel with the Google Chat service.
@@ -212,15 +218,15 @@ class GchatHandler(HttpRequestBasedHandler):
                 incident_ended_at = datetime.datetime.utcfromtimestamp(int(incident_ended_at))
             incident_summary = notification['incident']['summary']       
         except:
-            logging.error('failed to get notification fields %s'.format(notification))
+            logging.error(f'failed to get notification fields {notification}')
             raise 
 
         # Set the alert severity level if it is set in the user labels.
         try:
             incident_severity = notification['incident']['policy_user_labels']['severity']
-            incident_severity_display_str = ', <br><b><font    color="{color}">Severity:</font></b> {severity}'.format(severity=incident_severity, color=header_color)
+            incident_severity_display_str = f', <br><b><font    color="{header_color}">Severity:</font></b> {incident_severity}'
         except:
-            logging.error('Failed to extract the severity level info : {}'.format(notification))
+            logging.error(f'Failed to extract the severity level info : {notification}')
             incident_severity_display_str = ''
 
         message_body = {
@@ -231,12 +237,12 @@ class GchatHandler(HttpRequestBasedHandler):
                             'widgets': [
                                 {
                                     'textParagraph': {
-                                        'text': '<b><font color="{color}">Summary:</font></b> {}, <br><b><font    color="{color}">State:</font></b> {}{}'.format(incident_summary, incident_state, incident_severity_display_str, color=header_color)
+                                        'text': f'<b><font color="{header_color}">Summary:</font></b> {incident_summary}, <br><b><font    color="{header_color}">State:</font></b> {incident_state}{incident_severity_display_str}'
                                     }
                                 },
                                 {
                                     'textParagraph': {
-                                        'text': '<b>Condition Display Name:</b> {} <br><b>Start at:</b> {}<br><b>Incident Labels:</b> {}'.format(incident_display_name, started_time_str, incident_resource_labels)
+                                        'text': f'<b>Condition Display Name:</b> {incident_display_name} <br><b>Start at:</b> {started_time_str}<br><b>Incident Labels:</b> {incident_resource_labels}'
                                     }
                                 },
                                 {
@@ -246,7 +252,7 @@ class GchatHandler(HttpRequestBasedHandler):
                                                 'text': 'View Incident Details',
                                                 'onClick': {
                                                     'openLink': {
-                                                        'url': '{}'.format(incident_url)
+                                                        'url': f'{incident_url}'
                                                     }
                                                 }
                                             }
@@ -261,20 +267,22 @@ class GchatHandler(HttpRequestBasedHandler):
         } 
         return json.dumps(message_body)
 
-    def SendNotification(self, config_params: Dict[Text, Any], notification: Dict[Any, Any]):
+    def SendNotification(self, config_params: Dict[Text, Any], notification: Dict[Any, Any]) -> Tuple[Text, int]:
         """Sends a notification to a Google chat room."""
         try:
             self.CheckConfigParams(config_params)
-        except ConfigParamsError as e:
-            logging.error(f'Failed to send the notification: {e}')
-            return (str(e), 400)
-        except BaseException as e:
-            logging.error(f'Failed to send the notification: {e}')
-            return (str(e), 500)
+        except ConfigParamsError as err:
+            logging.error(f'Failed to send the notification: {err}')
+            return (str(err), 400)
+        except BaseException as err:
+            logging.error(f'Failed to send the notification: {err}')
+            return (str(err), 500)
 
         try:
-            http_response = super(GchatHandler, self).SendNotification(config_params, notification)
+            http_response, content = self._SendHttpRequest(config_params, notification)
             logging.info(f'Successfully sent the notification: {http_response}')
-        except BaseException as e:
-            logging.error(f'Failed to send the notification: {e}')
-            return (str(e), 400)
+        except BaseException as err:
+            logging.error(f'Failed to send the notification: {err}')
+            return (str(err), 400)
+        logging.info(f'The notification {notification} was sent and the response was {http_response}')
+        return (content, http_response.status)
