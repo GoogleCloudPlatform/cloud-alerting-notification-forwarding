@@ -169,7 +169,7 @@ class GchatHandlerTest(unittest.TestCase):
             body=expected_body,
         )
 
-    def testSendNotificationFormatTextFailed(self):
+    def testSendNotificationFormatTextFailedDuetoException(self):
         handler = service_handler.GchatHandler()
         config_params = _CONFIG_PARAMS.copy()
         self._http_obj_mock.request.side_effect = Exception('unknown exception')
