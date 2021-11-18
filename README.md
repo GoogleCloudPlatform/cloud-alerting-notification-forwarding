@@ -46,7 +46,21 @@ def main():
   project_id = 'wdzc-oss-1107-02'
 ```
 
-2. (Optional) If you'd like to edit the VM instance that's created in the deployment script you can edit the following:
+2. In `~/notification_integration/main.py` edit the `config_map` dictionary replacing the topic name and webhook_url with your own Google Chat webhook url. 
+```
+config_map = {
+    'topic_name': {
+        'service_name': 'google_chat',
+        'msg_format': 'card',
+        'webhook_url': 'url'},
+    'topic_name': {
+        'service_name': 'google_chat',
+        'msg_format': 'card',
+        'webhook_url': 'url'}
+}
+```
+
+3. (Optional) If you'd like to edit the VM instance that's created in the deployment script you can edit the following:
 ```
   _EnableComputeEngineService(project_id)
   print('----   Step 8.2: Create a VM instance')
@@ -54,17 +68,10 @@ def main():
   zone = 'us-east1-b'
   ```
 
-3. Run the script with the following command:
+4. Run the script with the following command:
   ```
   python3 deploy.py
   ```
-
-4. To complete the deployment, you will need to upload a json file named `channel_name_to_url_map.json` to the created bucket named `{project_id}-tfstate`. The json file should contain the webhook url(s) for notifications to be forwarded to and it should be in the following format:
-```
-{"topic-name": "webhook-url",
- "topic-name": "webhook-url" 
-}
-```
 
 ## Manual Deployment
 
@@ -95,12 +102,23 @@ gsutil versioning set on gs://${PROJECT_ID}-tfstate
 gsutil mb gs://url_config_{PROJECT_ID}
 ```
 
-6. Upload json containing the webhook url(s) to the `url_config_{PROJECT_ID}` bucket
+6. Upload the json containing the webhook url(s) to the `url_config_{PROJECT_ID}` bucket with the format:
 
 ```
 {"topic-name": "webhook-url",
  "topic-name": "webhook-url" 
 }
+```
+
+7. In `~/notification_integration/main.py` edit the `config_map` and `config_server` variables:
+```
+config_map = {
+    bucket_name: 'name',
+    file_name: 'webhook_file'
+}
+```
+```
+config_server = config_server.GcsConfigServer(config_map)
 ```
 4. Retrieve the email for your project's Cloud Build service account:
 
