@@ -198,7 +198,7 @@ class GchatHandler(HttpRequestBasedHandler):
 
         assert(format == 'card')
         try:
-            started_time = notification['incident']['started_at']
+            started_time = notification['incident'].get('started_at')
             if started_time:
                 started_time = datetime.datetime.utcfromtimestamp(int(started_time))
                 started_time_str = started_time.strftime('%Y-%m-%d %H:%M:%S (UTC)') 
@@ -213,9 +213,11 @@ class GchatHandler(HttpRequestBasedHandler):
             if incident_state == 'open':
                 header_color = self._RED_COLOR
 
-            incident_ended_at = notification['incident']['ended_at']
+            incident_ended_at = notification['incident'].get('ended_at')
             if incident_ended_at:
                 incident_ended_at = datetime.datetime.utcfromtimestamp(int(incident_ended_at))
+            else:
+                incident_ended_at = ''     
             incident_summary = notification['incident']['summary']       
         except:
             logging.error(f'failed to get notification fields {notification}')

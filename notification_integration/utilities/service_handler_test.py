@@ -13,6 +13,7 @@
 # limitations under the License.
 
 """Unit tests for service_handler.py."""
+import copy
 import json
 import httplib2
 import unittest
@@ -130,12 +131,20 @@ class GchatHandlerTest(unittest.TestCase):
         _, status_code = handler.SendNotification(None, _NOTIF) 
         self.assertEqual(status_code, 500)
 
+    def testSendNotificationFormatTextFailedDuetoException(self):
+        handler = service_handler.GchatHandler()
+        config_params = _CONFIG_PARAMS.copy()
+        self._http_obj_mock.request.side_effect = Exception('unknown exception')
+        config_params['msg_format'] = 'text'
+        _, status_code = handler.SendNotification(config_params, _NOTIF) 
+        self.assertEqual(status_code, 400)
+        self._http_obj_mock.request.assert_called_once()
+
     def testSendNotificationFormatTextSucceed(self):
         handler = service_handler.GchatHandler()
         config_params = _CONFIG_PARAMS.copy()
         config_params['msg_format'] = 'text'
         self._http_obj_mock.request.return_value = httplib2.Response({'status': 200}), 'OK'
-        # Set the config_param to None to cause exception.
         _, status_code = handler.SendNotification(config_params, _NOTIF) 
         self.assertEqual(status_code, 200)
         expected_body = (
@@ -169,26 +178,77 @@ class GchatHandlerTest(unittest.TestCase):
             body=expected_body,
         )
 
-    def testSendNotificationFormatTextFailedDuetoException(self):
+    def testSendNotificationFormatCardSucceed(self):
         handler = service_handler.GchatHandler()
-        config_params = _CONFIG_PARAMS.copy()
-        self._http_obj_mock.request.side_effect = Exception('unknown exception')
-        config_params['msg_format'] = 'text'
-        # Set the config_param to None to cause exception.
-        _, status_code = handler.SendNotification(config_params, _NOTIF) 
-        self.assertEqual(status_code, 400)
-        self._http_obj_mock.request.assert_called_once()
+        self._http_obj_mock.request.return_value = httplib2.Response({'status': 200}), 'OK'
+        _, status_code = handler.SendNotification(_CONFIG_PARAMS, _NOTIF) 
+        self.assertEqual(status_code, 200)
+        expected_body = (
+            '{"cards": [{"sections": [{"widgets": [{"textParagraph": {"text":'
+            ' "<b><font color=\\"#0000FF\\">Summary:</font></b> CPU usage for '
+            'tf-test VM Instance labels {project_id=tf-test} returned to normal'
+            ' with a value of 0.081., <br><b><font    color=\\"#0000FF\\">'
+            'State:</font></b> closed"}}, {"textParagraph": {"text": '
+            '"<b>Condition Display Name:</b> test condition <br><b>Start '
+            'at:</b> 2021-05-11 17:35:33 (UTC)<br><b>Incident Labels:</b> '
+            '{\'project_id\': \'tf-test\'}"}}, {"buttons": [{"textButton": '
+            '{"text": "View Incident Details", "onClick": {"openLink": '
+            '{"url": "https://console.cloud.google.com/monitoring/alerting/'
+            'incidents/0.m2d61b3s6d5d?project=tf-test"}}}}]}]}]}]}'
+        )
+        self._http_obj_mock.request.assert_called_once_with(
+            uri='https://chat.123.com',
+            method='POST',
+            headers={'Content-Type': 'application/json; charset=UTF-8'},
+            body=expected_body,
+        )
 
     def testSendNotificationFormatTextNon200Status(self):
         handler = service_handler.GchatHandler()
         config_params = _CONFIG_PARAMS.copy()
         self._http_obj_mock.request.return_value = httplib2.Response({'status': 500}), 'Server error'
         config_params['msg_format'] = 'text'
-        # Set the config_param to None to cause exception.
         _, status_code = handler.SendNotification(config_params, _NOTIF) 
         self.assertEqual(status_code, 500)
         self._http_obj_mock.request.assert_called_once()
 
+    def testSendNotificationFormatCardFailedDueToMissingField(self):
+        missing_fields = ['condition', 'resource', 'url', 'state', 'summary']
+        handler = service_handler.GchatHandler()
+        self._http_obj_mock.request.return_value = httplib2.Response({'status': 200}), 'OK'
+        for missing_field in missing_fields:
+            notif = copy.deepcopy(_NOTIF)
+            del notif['incident'][missing_field]
+
+            _, status_code = handler.SendNotification(_CONFIG_PARAMS, notif) 
+            self.assertEqual(status_code, 400)
+
+    def testSendNotificationFormatCardStartedAtMissing(self):
+        handler = service_handler.GchatHandler()
+        notif_without_startime = copy.deepcopy(_NOTIF)
+        del notif_without_startime['incident']['started_at']
+        self._http_obj_mock.request.return_value = httplib2.Response({'status': 200}), 'OK'
+        _, status_code = handler.SendNotification(_CONFIG_PARAMS, notif_without_startime) 
+        self.assertEqual(status_code, 200)
+        expected_body = (
+            '{"cards": [{"sections": [{"widgets": [{"textParagraph": {"text":'
+            ' "<b><font color=\\"#0000FF\\">Summary:</font></b> CPU usage for '
+            'tf-test VM Instance labels {project_id=tf-test} returned to normal'
+            ' with a value of 0.081., <br><b><font    color=\\"#0000FF\\">'
+            'State:</font></b> closed"}}, {"textParagraph": {"text": '
+            '"<b>Condition Display Name:</b> test condition <br><b>Start '
+            'at:</b> <br><b>Incident Labels:</b> '
+            '{\'project_id\': \'tf-test\'}"}}, {"buttons": [{"textButton": '
+            '{"text": "View Incident Details", "onClick": {"openLink": '
+            '{"url": "https://console.cloud.google.com/monitoring/alerting/'
+            'incidents/0.m2d61b3s6d5d?project=tf-test"}}}}]}]}]}]}'
+        )
+        self._http_obj_mock.request.assert_called_once_with(
+            uri='https://chat.123.com',
+            method='POST',
+            headers={'Content-Type': 'application/json; charset=UTF-8'},
+            body=expected_body,
+        )
 
 
 if __name__ == '__main__':
