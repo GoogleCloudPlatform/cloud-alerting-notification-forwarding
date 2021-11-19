@@ -38,6 +38,10 @@ COPY . ./
 ARG PROJECT_ID
 ENV PROJECT_ID=$PROJECT_ID
 
+# Flag to control what type of config server to use: in-memory or gcs.
+ARG CONFIG_SERVER_TYPE
+ENV CONFIG_SERVER_TYPE=$CONFIG_SERVER_TYPE
+
 # Run the web service on container startup. 
 # Use gunicorn webserver with one worker process and 8 threads.
 # For environments with multiple CPU cores, increase the number of workers

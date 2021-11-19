@@ -37,20 +37,20 @@
 #    (replace DEV_PROJECT_ID with your dev GCP project id):
 #    gcloud config set project DEV_PROJECT_ID
 # 2. Manully trigger Cloud Build to set up resources in the project.
-#    gcloud builds submit . --config cloudbuild.yaml --substitutions BRANCH_NAME=dev,DRY_RUN=true
+#    gcloud builds submit . --config cloudbuild.yaml --substitutions BRANCH_NAME=dev,_DRY_RUN=True
 #
 # To test a build in your prod project manually:
 # 1. Set your prod project as the GCP project for the gcloud invocation:
 #    (replace PROD_PROJECT_ID with your prod GCP project id):
 #    gcloud config set project PROD_PROJECT_ID
 # 2. Manully trigger Cloud Build to set up resources in the project.
-#    gcloud builds submit . --config cloudbuild.yaml --substitutions BRANCH_NAME=master,_DRY_RUN=false
+#    gcloud builds submit . --config cloudbuild.yaml --substitutions BRANCH_NAME=master,_DRY_RUN=False
 
 steps:
 - id: 'build docker image'
   # Uses the docker build command to build a docker image for Cloud Run
   name: 'gcr.io/cloud-builders/docker'
-  args: ['build', '--build-arg', 'PROJECT_ID=$PROJECT_ID', '--tag', 'gcr.io/$PROJECT_ID/${_IMAGE_NAME}', './notification_integration']
+  args: ['build', '--build-arg', 'PROJECT_ID=$PROJECT_ID', '--build-arg', 'CONFIG_SERVER_TYPE=$_CONFIG_SERVER_TYPE', '--tag', 'gcr.io/$PROJECT_ID/${_IMAGE_NAME}', './notification_integration']
   timeout: 300s # 5 minutes
 
 - id: 'push docker image to Container Registry'
@@ -77,11 +77,11 @@ steps:
   args: 
   - '-c'
   - | 
-      if [ "$_DRY_RUN" = "true" ]; then
+      if [ "$_DRY_RUN" = "True" ]; then
         echo "***********************"
         echo "[DRY RUN mode] Planning terraform configs from git branch $BRANCH_NAME"
         echo "to google cloud project $PROJECT_ID."
-        echo "To apply the configs, rerun this command with DRY_RUN=false."
+        echo "To apply the configs, rerun this command with DRY_RUN=False."
         echo "***********************"
       else
         echo "***********************"
@@ -135,7 +135,7 @@ steps:
   args: 
   - '-c'
   - | 
-      if [ "$_DRY_RUN" = "true" ]; then
+      if [ "$_DRY_RUN" = "True" ]; then
         echo "***************************** SKIPPING APPLYING *******************************"
         echo "Skipped tf apply since it is a dry run."
         echo "*******************************************************************************"

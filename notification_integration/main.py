@@ -20,8 +20,9 @@
 """Runs Cloud Alerting Notification Integration app with Flask."""
 
 import logging
-import os
 import json
+import sys
+import os
 
 from flask import Flask, request
 
@@ -42,9 +43,28 @@ config_map = {
     'tf-topic-disk': {
         'service_name': 'google_chat',
         'msg_format': 'card',
-        'webhook_url': 'https://chat.googleapis.com/v1/spaces/AAAA9xJV6L8/messages?key=AIzaSyDdI0hCZtE6vySjMm-WEfRq3CPzqKqqsHI&token=cgLW9UExTH8kipz2cBOaj51LOa4d2OJmdsXJkX8-Fas%3D'}
+        'webhook_url': 'https://chat.googleapis.com/v1/spaces/AAAA9xJV6L8/messages?key=AIzaSyDdI0hCZtE6vySjMm-WEfRq3CPzqKqqsHI&#token=cgLW9UExTH8kipz2cBOaj51LOa4d2OJmdsXJkX8-Fas%3D'}
 }
+# By default, we use the in-memory config server created in the above code.
+# If the env. variable 'CONFIG_SERVER_TYPE' is set to 'gcs', we will use
+# a GCS config server. The GCS bucket name is gcs_config_bucket_{PROJECT_ID} and the
+# config file/object name is gcs_config_file.json.
+# If you want to use the GCS config file, don't forget to manually create the GCS
+# bucket and upload the config file to the bucket before running the deployment 
+# script.
 config_params_server = config_server.InMemoryConfigServer(config_map)
+config_server_type = os.getenv('CONFIG_SERVER_TYPE')
+logger.info(f'The config server type : {config_server_type}')
+if config_server_type and config_server_type  == 'gcs':
+    project_id = os.getenv('PROJECT_ID')
+    if project_id:
+        gcs_bucket_name = f'gcs_config_bucket_{project_id}'
+        gcs_file_name = 'config_params.json'
+        config_params_server = config_server.GcsConfigServer(gcs_bucket_name, gcs_file_name)
+        logger.info(f'The GCS bucket config server is used : {gcs_bucket_name}/{gcs_file_name}')
+    else:
+        logger.info(f'The in-memory config server is used even it is configured: project_id={project_id}')
+
 gchat_handler = service_handler.GchatHandler()
 service_names_to_handlers = {
     'google_chat': gchat_handler,
@@ -52,23 +72,29 @@ service_names_to_handlers = {
 
 app = Flask(__name__)
 
-
+# Note: we need to return 200 status code to ack the PubSub message, even the notification delivery
+# is failed with non-retriable errors. For retriable errors, we can return non-(100, 20x) error codes
+# to request Pubsub to resend the message.
+# See https://cloud.google.com/pubsub/docs/push#receiving_messages for more details.
+# The returned response string is in the formate of "{status_code}:{message}", where the status_code
+# is the real status code returned by the integration service and the message is a detailed response
+# messsage string.
 @app.route('/<config_id>', methods=['POST'])
 def handle_pubsub_message(config_id):
     try:
         config_param = config_params_server.GetConfig(config_id)
     except BaseException as e:
         err_msg = 'Failed to get config parameters for {}: {}'.format(config_id, e)
-        logging.error(err_msg)
-        return(err_msg, 500)
+        logger.error(err_msg)
+        return(f'500: {err_msg}', 200)
     if 'service_name' not in config_param:
         err_msg = '"service_name" not found in the config parameters: {}'.format(config_id)
-        logging.error(err_msg)
-        return(err_msg, 500)
+        logger.error(err_msg)
+        return(f'500: {err_msg}', 200)
     if config_param['service_name'] not in service_names_to_handlers:
         err_msg = 'No handler found for the service {}'.format(config_param['service_name'])
-        logging.error(err_msg)
-        return(err_msg, 500)
+        logger.error(err_msg)
+        return(f'500: {err_msg}', 200)
 
     handler = service_names_to_handlers[config_param['service_name']]
     
@@ -79,29 +105,12 @@ def handle_pubsub_message(config_id):
         return handler.SendNotification(config_param, notification)
     except pubsub.DataParseError as e:
         logger.error(f'Pubsub message parse error: {e}')
-        return (str(e), 400)
+        return (f'400: {e}', 200)
     except BaseException as e:
         logger.error(f'Unexpected error when processing Pubsub message: {e}')
-        return (str(e), 400)
+        return (f'400: {e}', 200)
 
 def main():
-    # By default, we use the in-memory config server created in the above code.
-    # If the env. variable 'USE_GCS_CONFIG_SERVER' is set to 'True', we will use
-    # a GCS config server. The GCS bucket name is gcs_config_bucket_{PROJECT_ID} and the
-    # config file/object name is gcs_config_file.json.
-    # If you want to use the GCS config file, don't forget to manually create the GCS
-    # bucket and upload the config file to the bucket before running the deployment 
-    # script.
-    global config_params_server
-    use_gcs_config_server = os.getenv('USE_GCS_CONFIG_SERVER')
-
-    if use_gcs_config_server and use_gcs_config_server  == 'True':
-        project_id = os.getenv('PROJECT_ID')
-        if project_id:
-            gcs_bucket_name = f'gcs_config_bucket_{project_id}'
-            gcs_file_name = 'config_params.json'
-            config_params_server = config_server.GcsConfigServer(gcs_bucket_name, gcs_file_name)
-
     PORT = int(os.getenv('PORT')) if os.getenv('PORT') else 8080
     # This is used when running locally. Gunicorn is used to run the
     # application on Cloud Run. See entrypoint in Dockerfile.

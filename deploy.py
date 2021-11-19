@@ -138,11 +138,17 @@ def _SetupTfRemoteState(project_id: Text):
              '{gcs_bucket_name}').format(gcs_bucket_name=gcs_bucket_name)
   _RunGcloudCommand(gcloud_cmd, err_msg)
 
-def _TriggerCloudBuild(branch: Text):
+def _TriggerCloudBuild(branch: Text, dry_run: bool = False, config_server_type: Text = 'in-memory'):
   """Triggers the Cloud Build to run the local cloudbuild.yaml file."""
+  # The config_server_type can be in-memory or gcs. If it is set to gcs, don't forget to create
+  # a GCS bucket naming 'gcs_config_bucket_{project_id}' and upload the config file config_params.json
+  # to the bucket before running the script. You also need to grant read permission to the Cloud Run
+  # default service account PROJECT_NUMBER-compute@developer.gserviceaccount.com, see 
+  # https://cloud.google.com/run/docs/configuring/service-accounts.
   gcloud_cmd = ('gcloud builds submit . --config cloudbuild.yaml '
-                '--substitutions BRANCH_NAME={branch},_DRY_RUN=false').format(
-                  branch=branch)
+                '--substitutions BRANCH_NAME={branch},_DRY_RUN={dry_run},_CONFIG_SERVER_TYPE={config_server_type}').format(
+                  branch=branch, dry_run=dry_run, config_server_type=config_server_type)
+
   err_msg = 'Failed to trigger the cloud build for cloudbuild.yaml'
   _RunGcloudCommand(gcloud_cmd, err_msg)
 
@@ -185,8 +191,9 @@ def main():
 
   # Manully trigger the Cloud Build.
   branch = 'master'  # The Git branch to use.
-  print('---- Step 7: Manually trigger the Cloud Build: branch = {}'.format(branch))
-  _TriggerCloudBuild(branch)
+  config_server_type = 'gcs'
+  print('---- Step 7: Manually trigger the Cloud Build: branch={}, config_server_type={}'.format(branch, config_server_type))
+  _TriggerCloudBuild(branch, config_server_type=config_server_type)
 
   # Optional: Create a VM instance to trigger the alerting polices created with Terraform.
   # If you don't want to automatically trigger the created alert policies, you can remove
