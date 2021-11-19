@@ -32,6 +32,8 @@ from utilities import config_server, pubsub, service_handler
 # logger inherits the logging level and handlers of the root logger
 logger = logging.getLogger(__name__)
 
+# The keys of the config_map corresponds to the local pubsub topic
+# variables in main.tf.
 config_map = {
     'tf-topic-cpu': {
         'service_name': 'google_chat',
@@ -42,7 +44,7 @@ config_map = {
         'msg_format': 'card',
         'webhook_url': 'https://chat.googleapis.com/v1/spaces/AAAA9xJV6L8/messages?key=AIzaSyDdI0hCZtE6vySjMm-WEfRq3CPzqKqqsHI&token=cgLW9UExTH8kipz2cBOaj51LOa4d2OJmdsXJkX8-Fas%3D'}
 }
-config_server = config_server.InMemoryConfigServer(config_map)
+config_params_server = config_server.InMemoryConfigServer(config_map)
 gchat_handler = service_handler.GchatHandler()
 service_names_to_handlers = {
     'google_chat': gchat_handler,
@@ -50,11 +52,11 @@ service_names_to_handlers = {
 
 app = Flask(__name__)
 
-# [START run_pubsub_handler]
+
 @app.route('/<config_id>', methods=['POST'])
 def handle_pubsub_message(config_id):
     try:
-        config_param = config_server.GetConfig(config_id)
+        config_param = config_params_server.GetConfig(config_id)
     except BaseException as e:
         err_msg = 'Failed to get config parameters for {}: {}'.format(config_id, e)
         logging.error(err_msg)
@@ -74,16 +76,37 @@ def handle_pubsub_message(config_id):
     pubsub_received_message = request.get_json()
     try:
         notification = pubsub.ExtractNotificationFromPubSubMsg(pubsub_received_message)
+        return handler.SendNotification(config_param, notification)
     except pubsub.DataParseError as e:
-        logger.error(e)
+        logger.error(f'Pubsub message parse error: {e}')
+        return (str(e), 400)
+    except BaseException as e:
+        logger.error(f'Unexpected error when processing Pubsub message: {e}')
         return (str(e), 400)
 
-    return handler.SendNotification(config_param, notification)
-# [END run_pubsub_handler]
+def main():
+    # By default, we use the in-memory config server created in the above code.
+    # If the env. variable 'USE_GCS_CONFIG_SERVER' is set to 'True', we will use
+    # a GCS config server. The GCS bucket name is gcs_config_bucket_{PROJECT_ID} and the
+    # config file/object name is gcs_config_file.json.
+    # If you want to use the GCS config file, don't forget to manually create the GCS
+    # bucket and upload the config file to the bucket before running the deployment 
+    # script.
+    global config_params_server
+    use_gcs_config_server = os.getenv('USE_GCS_CONFIG_SERVER')
 
-  
-if __name__ == '__main__':
+    if use_gcs_config_server and use_gcs_config_server  == 'True':
+        project_id = os.getenv('PROJECT_ID')
+        if project_id:
+            gcs_bucket_name = f'gcs_config_bucket_{project_id}'
+            gcs_file_name = 'config_params.json'
+            config_params_server = config_server.GcsConfigServer(gcs_bucket_name, gcs_file_name)
+
     PORT = int(os.getenv('PORT')) if os.getenv('PORT') else 8080
     # This is used when running locally. Gunicorn is used to run the
     # application on Cloud Run. See entrypoint in Dockerfile.
     app.run(host='127.0.0.1', port=PORT, debug=True)
+
+
+if __name__ == '__main__':
+    main()

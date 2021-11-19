@@ -17,6 +17,7 @@
 import base64
 import binascii
 import json
+from typing import Any, Dict, Text
 
 class Error(Exception):
     """Base class for all errors raised in this module."""
@@ -26,7 +27,7 @@ class DataParseError(Error):
     """Raised when the encoded 'data' field of a Pub/Sub message cannot be parsed."""
 
 
-def ExtractNotificationFromPubSubMsg(pubsub_msg):
+def ExtractNotificationFromPubSubMsg(pubsub_msg: Dict[Text, Any]) -> Dict[Text, Any]:
     """Parses notification messages from Pub/Sub.
 
     Args:
