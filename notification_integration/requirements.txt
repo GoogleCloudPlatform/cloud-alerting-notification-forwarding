@@ -1,9 +1,8 @@
 Flask==1.1.2
 pylint==2.5.3
 gunicorn==20.0.4
-google-cloud-secret-manager==1.0.0
-google-cloud-storage==1.38.0 
+google-cloud-logging==2.7.0
+google-cloud-storage 
 python-dotenv==0.13.0
 requests==2.23.0
-requests-mock==1.8.0
 httplib2==0.19.1

@@ -18,6 +18,18 @@
 # Cloud Run/PubSub solutions guide.
 
 """Runs Cloud Alerting Notification Integration app with Flask."""
+# Imports the Cloud Logging client library
+import google.cloud.logging
+
+# Instantiates a client
+client = google.cloud.logging.Client()
+
+# Retrieves a Cloud Logging handler based on the environment
+# you're running in and integrates the handler with the
+# Python logging module. By default this captures all logs
+# at INFO level and higher
+# See https://cloud.google.com/logging/docs/reference/libraries#write_standard_logs
+client.setup_logging()
 
 import logging
 import json
@@ -30,8 +42,6 @@ from httplib2 import Http
 
 from utilities import config_server, pubsub, service_handler
 
-# logger inherits the logging level and handlers of the root logger
-logger = logging.getLogger(__name__)
 
 # The keys of the config_map corresponds to the local pubsub topic
 # variables in main.tf.
@@ -43,7 +53,7 @@ config_map = {
     'tf-topic-disk': {
         'service_name': 'google_chat',
         'msg_format': 'card',
-        'webhook_url': 'https://chat.googleapis.com/v1/spaces/AAAA9xJV6L8/messages?key=AIzaSyDdI0hCZtE6vySjMm-WEfRq3CPzqKqqsHI&#token=cgLW9UExTH8kipz2cBOaj51LOa4d2OJmdsXJkX8-Fas%3D'}
+        'webhook_url': 'https://chat.googleapis.com/v1/spaces/AAAA9xJV6L8/messages?key=AIzaSyDdI0hCZtE6vySjMm-WEfRq3CPzqKqqsHI&token=cgLW9UExTH8kipz2cBOaj51LOa4d2OJmdsXJkX8-Fas%3D'}
 }
 # By default, we use the in-memory config server created in the above code.
 # If the env. variable 'CONFIG_SERVER_TYPE' is set to 'gcs', we will use
@@ -54,16 +64,16 @@ config_map = {
 # script.
 config_params_server = config_server.InMemoryConfigServer(config_map)
 config_server_type = os.getenv('CONFIG_SERVER_TYPE')
-logger.info(f'The config server type : {config_server_type}')
+logging.info(f'The config server type : {config_server_type}')
 if config_server_type and config_server_type  == 'gcs':
     project_id = os.getenv('PROJECT_ID')
     if project_id:
         gcs_bucket_name = f'gcs_config_bucket_{project_id}'
         gcs_file_name = 'config_params.json'
         config_params_server = config_server.GcsConfigServer(gcs_bucket_name, gcs_file_name)
-        logger.info(f'The GCS bucket config server is used : {gcs_bucket_name}/{gcs_file_name}')
+        logging.info(f'The GCS bucket config server is used : {gcs_bucket_name}/{gcs_file_name}')
     else:
-        logger.info(f'The in-memory config server is used even it is configured: project_id={project_id}')
+        logging.info(f'The in-memory config server is used even it is configured: project_id={project_id}')
 
 gchat_handler = service_handler.GchatHandler()
 service_names_to_handlers = {
@@ -85,15 +95,15 @@ def handle_pubsub_message(config_id):
         config_param = config_params_server.GetConfig(config_id)
     except BaseException as e:
         err_msg = 'Failed to get config parameters for {}: {}'.format(config_id, e)
-        logger.error(err_msg)
+        logging.error(err_msg)
         return(f'500: {err_msg}', 200)
     if 'service_name' not in config_param:
         err_msg = '"service_name" not found in the config parameters: {}'.format(config_id)
-        logger.error(err_msg)
+        logging.error(err_msg)
         return(f'500: {err_msg}', 200)
     if config_param['service_name'] not in service_names_to_handlers:
         err_msg = 'No handler found for the service {}'.format(config_param['service_name'])
-        logger.error(err_msg)
+        logging.error(err_msg)
         return(f'500: {err_msg}', 200)
 
     handler = service_names_to_handlers[config_param['service_name']]
@@ -102,13 +112,15 @@ def handle_pubsub_message(config_id):
     pubsub_received_message = request.get_json()
     try:
         notification = pubsub.ExtractNotificationFromPubSubMsg(pubsub_received_message)
-        return handler.SendNotification(config_param, notification)
+        response, status_code = handler.SendNotification(config_param, notification)
+        logging.info(f'Notification was sent with the status code = {status_code}: {response}')
+        return(f'{status_code}: {response}', 200) 
     except pubsub.DataParseError as e:
-        logger.error(f'Pubsub message parse error: {e}')
-        return (f'400: {e}', 200)
+        logging.error(f'Pubsub message parse error: {e}')
+        return(f'400: {e}', 200)
     except BaseException as e:
-        logger.error(f'Unexpected error when processing Pubsub message: {e}')
-        return (f'400: {e}', 200)
+        logging.error(f'Unexpected error when processing Pubsub message: {e}')
+        return(f'400: {e}', 200)
 
 def main():
     PORT = int(os.getenv('PORT')) if os.getenv('PORT') else 8080

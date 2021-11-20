@@ -13,7 +13,6 @@
 # limitations under the License.
 
 """Module that provides handlers to integrate with 3rd-party services."""
-
 import abc
 import datetime
 import httplib2
@@ -138,13 +137,14 @@ class HttpRequestBasedHandler(ServiceHandler, abc.ABC):
 
         http_obj = httplib2.Http()
 
-        result = http_obj.request(
+        # content is a bytes object. 
+        http_response, content = http_obj.request(
             uri=http_url,
             method=self._http_method,
             headers=messages_headers,
             body=message_body,
         )
-        return result
+        return http_response, content.decode('utf-8')
  
     
 class GchatHandler(HttpRequestBasedHandler):
@@ -281,10 +281,11 @@ class GchatHandler(HttpRequestBasedHandler):
             return (str(err), 500)
 
         try:
+            logging.info(f'Sending the notification: {notification}')
+            # content is of type bytes.
             http_response, content = self._SendHttpRequest(config_params, notification)
             logging.info(f'Successfully sent the notification: {http_response}')
         except BaseException as err:
             logging.error(f'Failed to send the notification: {err}')
             return (str(err), 400)
-        logging.info(f'The notification {notification} was sent and the response was {http_response}')
         return (content, http_response.status)

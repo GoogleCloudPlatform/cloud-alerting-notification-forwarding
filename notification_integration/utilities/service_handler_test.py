@@ -144,7 +144,7 @@ class GchatHandlerTest(unittest.TestCase):
         handler = service_handler.GchatHandler()
         config_params = _CONFIG_PARAMS.copy()
         config_params['msg_format'] = 'text'
-        self._http_obj_mock.request.return_value = httplib2.Response({'status': 200}), 'OK'
+        self._http_obj_mock.request.return_value = httplib2.Response({'status': 200}), b'OK'
         _, status_code = handler.SendNotification(config_params, _NOTIF) 
         self.assertEqual(status_code, 200)
         expected_body = (
@@ -180,9 +180,10 @@ class GchatHandlerTest(unittest.TestCase):
 
     def testSendNotificationFormatCardSucceed(self):
         handler = service_handler.GchatHandler()
-        self._http_obj_mock.request.return_value = httplib2.Response({'status': 200}), 'OK'
-        _, status_code = handler.SendNotification(_CONFIG_PARAMS, _NOTIF) 
+        self._http_obj_mock.request.return_value = httplib2.Response({'status': 200}), b'OK'
+        http_response, status_code = handler.SendNotification(_CONFIG_PARAMS, _NOTIF) 
         self.assertEqual(status_code, 200)
+        self.assertEqual(http_response, 'OK')
         expected_body = (
             '{"cards": [{"sections": [{"widgets": [{"textParagraph": {"text":'
             ' "<b><font color=\\"#0000FF\\">Summary:</font></b> CPU usage for '
@@ -206,16 +207,17 @@ class GchatHandlerTest(unittest.TestCase):
     def testSendNotificationFormatTextNon200Status(self):
         handler = service_handler.GchatHandler()
         config_params = _CONFIG_PARAMS.copy()
-        self._http_obj_mock.request.return_value = httplib2.Response({'status': 500}), 'Server error'
+        self._http_obj_mock.request.return_value = httplib2.Response({'status': 500}), b'Server error'
         config_params['msg_format'] = 'text'
-        _, status_code = handler.SendNotification(config_params, _NOTIF) 
+        http_response, status_code = handler.SendNotification(config_params, _NOTIF) 
         self.assertEqual(status_code, 500)
+        self.assertEqual(http_response, 'Server error')
         self._http_obj_mock.request.assert_called_once()
 
     def testSendNotificationFormatCardFailedDueToMissingField(self):
         missing_fields = ['condition', 'resource', 'url', 'state', 'summary']
         handler = service_handler.GchatHandler()
-        self._http_obj_mock.request.return_value = httplib2.Response({'status': 200}), 'OK'
+        self._http_obj_mock.request.return_value = httplib2.Response({'status': 200}), b'OK'
         for missing_field in missing_fields:
             notif = copy.deepcopy(_NOTIF)
             del notif['incident'][missing_field]
@@ -227,7 +229,7 @@ class GchatHandlerTest(unittest.TestCase):
         handler = service_handler.GchatHandler()
         notif_without_startime = copy.deepcopy(_NOTIF)
         del notif_without_startime['incident']['started_at']
-        self._http_obj_mock.request.return_value = httplib2.Response({'status': 200}), 'OK'
+        self._http_obj_mock.request.return_value = httplib2.Response({'status': 200}), b'OK'
         _, status_code = handler.SendNotification(_CONFIG_PARAMS, notif_without_startime) 
         self.assertEqual(status_code, 200)
         expected_body = (
