@@ -190,7 +190,7 @@ def main():
   _SetupTfRemoteState(project_id)
 
   # Manully trigger the Cloud Build.
-  branch = 'master'  # The Git branch to use.
+  branch = 'main'  # The Git branch to use.
   config_server_type = 'in-memory'
   print('---- Step 7: Manually trigger the Cloud Build: branch={}, config_server_type={}'.format(branch, config_server_type))
   _TriggerCloudBuild(branch, config_server_type=config_server_type)

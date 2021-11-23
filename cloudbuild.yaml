@@ -26,25 +26,17 @@
 # https://www.terraform.io/docs/index.html
 #
 # The following Terraform steps are executed
-# (only for the dev/master subfolder under "environments"):
 # 1. terraform init
 # 2. terraform refresh
 # 3. terraform plan
 # 4. terraform apply (if the env. variable 'DRY_RUN'='false')
-# 
-# To test a build in your dev GCP project manually with a dry run:
-# 1. Set your dev project as the GCP project for the gcloud invocation.
-#    (replace DEV_PROJECT_ID with your dev GCP project id):
-#    gcloud config set project DEV_PROJECT_ID
-# 2. Manully trigger Cloud Build to set up resources in the project.
-#    gcloud builds submit . --config cloudbuild.yaml --substitutions BRANCH_NAME=dev,_DRY_RUN=True
 #
 # To test a build in your prod project manually:
 # 1. Set your prod project as the GCP project for the gcloud invocation:
 #    (replace PROD_PROJECT_ID with your prod GCP project id):
 #    gcloud config set project PROD_PROJECT_ID
 # 2. Manully trigger Cloud Build to set up resources in the project.
-#    gcloud builds submit . --config cloudbuild.yaml --substitutions BRANCH_NAME=master,_DRY_RUN=False
+#    gcloud builds submit . --config cloudbuild.yaml --substitutions BRANCH_NAME=main,_DRY_RUN=False
 
 steps:
 - id: 'build docker image'
