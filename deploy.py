@@ -25,10 +25,12 @@
 #      See https://cloud.google.com/sdk/docs/install.
 #   b) A cloud billing account is set for the given project.
 #      See https://cloud.google.com/billing/docs/how-to/modify-project 
+import getopt
+import sys
 import subprocess
 import time
 
-from typing import Set, Optional, Text
+from typing import Dict, Set, Optional, Text
 
 def _RunGcloudCommand(cmd: Text, err_msg: Text, wait_before_return_sec: int = 0
 ) -> subprocess.CompletedProcess:
@@ -159,9 +161,27 @@ def _CreateVmInstance(project_id: Text, vm_name: Text, zone: Text):
   err_msg = 'Failed to create a VM instance in {}'.format(zone)
   _RunGcloudCommand(gcloud_cmd, err_msg)
 
-def main():
+def main(argv: Dict[Text, Text]):
   # Set the default gcloud project to a new project. Make sure the billing account is set.
-  project_id = 'wdzc-oss-1107-02'
+  project_id = ''
+  branch = 'main'  # The Git branch to use.
+  config_server_type = 'in-memory'
+
+  try:
+     opts, args = getopt.getopt(argv, 'hp:b:c:',['project_id=', 'git_branch=', 'config_server_type='])
+  except BaseException as e:
+     print(f'Failed to extract the command line arguments: {e}')
+  for opt, arg in opts:
+     if opt == '-h':
+        print 'test.py -i <inputfile> -o <outputfile>'
+        sys.exit()
+     elif opt in ("-i", "--ifile"):
+        inputfile = arg
+     elif opt in ("-o", "--ofile"):
+        outputfile = arg
+  print 'Input file is "', inputfile
+  print 'Output file is "', outputfile
+
   print('---- Step 1: Set up the default gcloud project for the current invocation: {}'.format(project_id))
   _SetProjectForInvocation(project_id)
 
@@ -190,8 +210,6 @@ def main():
   _SetupTfRemoteState(project_id)
 
   # Manully trigger the Cloud Build.
-  branch = 'main'  # The Git branch to use.
-  config_server_type = 'in-memory'
   print('---- Step 7: Manually trigger the Cloud Build: branch={}, config_server_type={}'.format(branch, config_server_type))
   _TriggerCloudBuild(branch, config_server_type=config_server_type)
 
@@ -210,4 +228,4 @@ def main():
 
 
 if __name__ == '__main__':
-  main()
+  main(sys.argv[1:])
