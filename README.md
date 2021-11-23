@@ -90,43 +90,49 @@ PROJECT_ID=$(gcloud config get-value project)
 gsutil mb gs://${PROJECT_ID}-tfstate
 ```
 
-3. You may optionally enable Object Versioning to keep the history of your deployments:
+3. (Optional) You may enable Object Versioning to keep the history of your deployments:
 
 ```
 gsutil versioning set on gs://${PROJECT_ID}-tfstate
 ```
 
-5. Create Cloud Storage bucket for your webhook url(s):
-
+4. In `~/notification_integration/main.py` edit the `config_map` variables:
 ```
-gsutil mb gs://url_config_{PROJECT_ID}
+config_map = {
+    'topic name':{
+        'service_name': 'google_chat',
+        'msg_format': 'card',
+        'webhook_url': 'url'
+    }
+}
 ```
 
-6. Upload the json containing the webhook url(s) to the `url_config_{PROJECT_ID}` bucket with the format:
+5. (Optional) If you'd like to not expose your webhook urls in the case of a public repo, you can create a gcs bucket to store the webhook url in a json file. Complete the following steps:
 
+Set the ENV variable for `CONFIG_SERVER_TYPE` to `gcs`:
+```
+export CONFIG_SERVER_TYPE=gcs
+```
+
+Create the GCS bucket
+```
+gsutil mb gs://gcs_config_bucket_{PROJECT_ID}
+```
+
+Upload the json containing the webhook url(s) named `gcs_config_file.json` to the newly created gcs bucket with the format:
 ```
 {"topic-name": "webhook-url",
  "topic-name": "webhook-url" 
 }
 ```
 
-7. In `~/notification_integration/main.py` edit the `config_map` and `config_server` variables:
-```
-config_map = {
-    bucket_name: 'name',
-    file_name: 'webhook_file'
-}
-```
-```
-config_server = config_server.GcsConfigServer(config_map)
-```
-4. Retrieve the email for your project's Cloud Build service account:
+6. Retrieve the email for your project's Cloud Build service account:
 
 ```
 CLOUDBUILD_SA="$(gcloud projects describe $PROJECT_ID --format 'value(projectNumber)')@cloudbuild.gserviceaccount.com"
 ```
 
-5. Grant the required access to your Cloud Build service account:
+7. Grant the required access to your Cloud Build service account:
 
 ```
 gcloud projects add-iam-policy-binding $PROJECT_ID --member serviceAccount:$CLOUDBUILD_SA --role roles/iam.securityAdmin
@@ -138,7 +144,7 @@ gcloud projects add-iam-policy-binding $PROJECT_ID --member serviceAccount:$CLOU
 gcloud projects add-iam-policy-binding $PROJECT_ID --member serviceAccount:$CLOUDBUILD_SA --role roles/editor
 ```
 
-6. Trigger a build and deploy to Cloud Run. Replace `[BRANCH]` with the current environment branch:
+8. Trigger a build and deploy to Cloud Run. Replace `[BRANCH]` with the current environment branch:
 
 ```
 cd ~/gchat_integration
@@ -146,7 +152,7 @@ cd ~/gchat_integration
 gcloud builds submit . --config cloudbuild.yaml --substitutions BRANCH_NAME=[BRANCH]
 ```
 
-7. Create a VM instance to trigger alert policies:
+9. Create a VM instance to trigger alert policies:
 
 ```
 gcloud compute instances create {vm_name} --zone={zone}
@@ -154,9 +160,9 @@ gcloud compute instances create {vm_name} --zone={zone}
 
 Note that this step uses Terraform to automatically create necessary resources in the Google Cloud Platform project. For more info on what resources are created and managed, refer to the Terraform section below.
 
-7. Create a Pub/Sub notification channel that uses the topic `tf-topic` (which was created by Terraform in the previous step).
-8. Add the Pub/Sub channel to an alerting policy by selecting Pub/Sub as the channel type and the channel created in the prior step as the notification channel.
-9. Congratulations! Your service is now successfully deployed to Cloud Run and alerts will be forwarded to your provided Google Chat room(s).
+10. Create a Pub/Sub notification channel that uses the topic `tf-topic` (which was created by Terraform in the previous step).
+11. Add the Pub/Sub channel to an alerting policy by selecting Pub/Sub as the channel type and the channel created in the prior step as the notification channel.
+12. Congratulations! Your service is now successfully deployed to Cloud Run and alerts will be forwarded to your provided Google Chat room(s).
 
 ### Redeploy
 
@@ -178,15 +184,13 @@ Refer to this solutions guide for instructions on how to setup continuous deploy
 
 ## Running the tests
 
-In order to successfully run these tests, make sure you have successfully setup virtualenv and installed the required dependencies as specified in the "Setup" section above.
-
 In order to successfully run unit tests and linter in the section below, setup a virtualenv and install the required dependencies:
 
 ```
 virtualenv env
 source env/bin/activate
 
-pip3 install -r scripts/requirements.txt
+pip3 install -r utilities/requirements.txt
 ```
 
 ### Unit Tests
@@ -228,7 +232,7 @@ These configurations will be applied automatically on source code changes after 
 
 Deployment with Terraform will be automated through source code changes in GitHub. To manually see and apply the changes Terraform makes to your Cloud project resources, do the following:
 
-Navigate to the desired environment folder (`environments/dev` or `environments/prod`) and run the following:
+Navigate to the environment folder and run the following:
 
 Initialize a working directory containing Terraform configuration files:
 ```
