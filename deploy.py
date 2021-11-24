@@ -30,11 +30,11 @@ import sys
 import subprocess
 import time
 
-from typing import Dict, Set, Optional, Text
+from typing import List, Set, Optional, Text
 
 _HELP_INFO = (
     'Please run the deploy command as the following: \n'
-    'python3 deploy.py -p <project_id> -b <git_branch> -c <config_server_name>. \n'
+    'python3 deploy.py -p <project_id> [-b <git_branch>] [-c <config_server_name>] \n'
     'E.g. python3 deploy.py -p my_project -b main -c gcs \n'
     'The command line options: \n'
     '  -p: The ID of the GCP project in which to deploy the notification integration. \n'
@@ -173,7 +173,7 @@ def _CreateVmInstance(project_id: Text, vm_name: Text, zone: Text):
   err_msg = 'Failed to create a VM instance in {}'.format(zone)
   _RunGcloudCommand(gcloud_cmd, err_msg)
 
-def main(argv: Dict[Text, Text]):
+def main(argv: List[Text]):
   # Set the default gcloud project to a new project. Make sure the billing account is set.
   project_id = ''
   branch = 'main'  # The Git branch to use.
@@ -181,10 +181,13 @@ def main(argv: Dict[Text, Text]):
 
   try:
      opts, args = getopt.getopt(argv, 'hp:b:c:',['project_id=', 'branch=', 'config_server_type='])
+     if args:
+         raise ValueError(f'Unknown args found {args}') 
   except BaseException as e:
      print(f'Failed to extract the command line arguments: {e}')
      print(_HELP_INFO)
      raise
+
   for opt, arg in opts:
      if opt == '-h':
        print(_HELP_INFO)
@@ -251,4 +254,5 @@ def main(argv: Dict[Text, Text]):
 
 
 if __name__ == '__main__':
+  print(sys.argv)  
   main(sys.argv[1:])
