@@ -32,6 +32,18 @@ import time
 
 from typing import Dict, Set, Optional, Text
 
+_HELP_INFO = (
+    'Please run the deploy command as the following: \n'
+    'python3 deploy.py -p <project_id> -b <git_branch> -c <config_server_name>. \n'
+    'E.g. python3 deploy.py -p my_project -b main -c gcs \n'
+    'The command line options: \n'
+    '  -p: The ID of the GCP project in which to deploy the notification integration. \n'
+    '  -b: The git branch name. The default value is "main"\n'
+    '  -c: The configuration server type. Currently it supports "gcs" and "in-memory".\n'
+    '      The default value is "in-memory"\n'
+    'You can also run "python3 deploy.py -h" to see this help information.'
+)
+
 def _RunGcloudCommand(cmd: Text, err_msg: Text, wait_before_return_sec: int = 0
 ) -> subprocess.CompletedProcess:
   """Runs the given gcloud command and outputs the error message if failed.
@@ -168,20 +180,27 @@ def main(argv: Dict[Text, Text]):
   config_server_type = 'in-memory'
 
   try:
-     opts, args = getopt.getopt(argv, 'hp:b:c:',['project_id=', 'git_branch=', 'config_server_type='])
+     opts, args = getopt.getopt(argv, 'hp:b:c:',['project_id=', 'branch=', 'config_server_type='])
   except BaseException as e:
      print(f'Failed to extract the command line arguments: {e}')
+     print(_HELP_INFO)
+     raise
   for opt, arg in opts:
      if opt == '-h':
-        print 'test.py -i <inputfile> -o <outputfile>'
-        sys.exit()
-     elif opt in ("-i", "--ifile"):
-        inputfile = arg
-     elif opt in ("-o", "--ofile"):
-        outputfile = arg
-  print 'Input file is "', inputfile
-  print 'Output file is "', outputfile
+       print(_HELP_INFO)
+       return
+     elif opt in ("-p", "--project_id"):
+       project_id = arg
+     elif opt in ("-b", "--branch"):
+       branch = arg
+     elif opt in ("-c", "--config_server_type"):
+       config_server_type = arg
+     else:
+       print(_HELP_INFO)
+       raise ValueError(f'Unkonwn command line argument: {opt}')
 
+  print(f'Starting the deployment: project_id={project_id}, branch={branch}, config_server_type={config_server_type}')
+  return
   print('---- Step 1: Set up the default gcloud project for the current invocation: {}'.format(project_id))
   _SetProjectForInvocation(project_id)
 
