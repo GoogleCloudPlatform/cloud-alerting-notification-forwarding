@@ -196,11 +196,15 @@ def main(argv: Dict[Text, Text]):
      elif opt in ("-c", "--config_server_type"):
        config_server_type = arg
      else:
+       # It should never get to here.  
        print(_HELP_INFO)
        raise ValueError(f'Unkonwn command line argument: {opt}')
 
+  if not project_id:
+      print(_HELP_INFO)
+      raise ValueError('The project ID is not set.')
+
   print(f'Starting the deployment: project_id={project_id}, branch={branch}, config_server_type={config_server_type}')
-  return
   print('---- Step 1: Set up the default gcloud project for the current invocation: {}'.format(project_id))
   _SetProjectForInvocation(project_id)
 
