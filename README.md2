@@ -1,33 +1,36 @@
-# Sample Code for the Cloud Monitoring Notification Delivery Integration Guide
+# Sample Code for the Cloud Monitoring Alerting Notification Delivery Integration Guide
 
 **This is not an officially supported Google product.**
 
-This repository provides examples of how a Google Cloud user can forward **[notifications](https://cloud.google.com/monitoring/alerts#how_does_alerting_work)** to third-party integrations not officially supported as **[notification options](https://cloud.google.com/monitoring/support/notification-options)**. The provided example forward notifications to a Google chat room. The example accomplishes this through the use of a Flask server running on Cloud Run which recieves monitoring notifications through Cloud Pub/Sub push messages and then parses and delivers them to a third party service.
+This repository provides examples of how a Google Cloud user can forward **[alerting notifications](https://cloud.google.com/monitoring/alerts#how_does_alerting_work)** to third-party integrations not officially supported as **[notification channels](https://cloud.google.com/monitoring/support/notification-options)**. The provided example forwards alerting notifications to  Google chat rooms via Cloud Pus/Sub notification channels. The example accomplishes this through the use of a Flask server running on Cloud Run which receives alerting notifications from Cloud Pub/Sub notification channels, parses them into Google chat messages, and then delivers the messages to Google chat rooms via HTTP requests.
 
-The sample code in this repository is referenced in this **[Cloud Community tutorial](new blog link)**. 
+The sample code in this repository is referenced in this **[Cloud Community tutorial](To Be Updated)**. 
 
 ## Folder Structure
 
     .
     ├── .github/workflows
-    ├── docs
     ├── environments                      # Terraform configurations for each environment
-    │   ├── prod
-    ├── modules                           # Terraform modules
-    ├── gchat_integration                 # Google Chat Integration
-    │   ├── utilities
-    │   ├── tests                         # Unit tests
-    │   ...
+    │   ├── main                          #   GitHub main branch
+    ├── tf-modules                        # Terraform modules
+    │   ├── cloud_run                     #   Cloud run module    
+    │   ├── cpu_alert_policy              #   Sample CPU alert policy module
+    │   ├── disk_alert_policy             #   Sample disk alert policy module
+    │   ├── pubsub_channel                #   Cloud Pub/Sub notification channel module
+    │   ├── pubsub_service                #   Cloud Pub/Sub service (e.g. topics, subscriptions) module
+    ├── notification_integration          # Alerting notification integration
+    │   ├── utilities                     #   Notification integration sub-modules and their unit tests
     ├── scripts                           # Scripts for testing
     .
     .
     .
-    └── cloudbuild.yaml                   # Build configuration file
+    ├── deploy.py                         # Deployment script.
+    └── cloudbuild.yaml                   # Cloud build configuration file
 
 ## Setup
 
-1.  Create a [new Google Cloud Platform project from the Cloud
-    Console](https://console.cloud.google.com/project) or use an existing one.
+1. Create a [new Google Cloud Platform project from the Cloud
+   Console](https://console.cloud.google.com/project) or use an existing one.
 
 2. Be sure to [enable billing](https://cloud.google.com/billing/docs/how-to/modify-project) in your new GCP project.
 
