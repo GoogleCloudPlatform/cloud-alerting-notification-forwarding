@@ -40,40 +40,30 @@ The sample code in this repository is referenced in this **[Cloud Community tuto
 
 ## One Button / Automatic deployment
 
-To deploy the Gchat integration for the first time automatically, we've provided a script `deploy.py` that will handle a majority of the required actions for deployment. Complete the following steps before running the script.
+To deploy the notification channel integration sample for the first time automatically, we've provided a script `deploy.py` that will handle a majority of the required actions for deployment. Complete the following steps before running the script.
 
-1. Set the `project_id` variable in `deploy.py`
-```
-def main():
-  # Set the default gcloud project to a new project. Make sure the billing account is set.
-  project_id = 'wdzc-oss-1107-02'
-```
+1. Ensure Python 3.5 or higher is installed in Cloud Shell. Run the following command to check. More information about how to set up a Python development environment can be found at [here](https://cloud.google.com/python/docs/setup).
+  ```
+  python3 --version
+  ```
 
-2. In `~/notification_integration/main.py` edit the `config_map` dictionary replacing the topic name and webhook_url with your own Google Chat webhook url. 
+2. In `~/notification_integration/main.py` edit the `config_map` dictionary replacing the webhook_url with your own Google Chat webhook url. 
 ```
 config_map = {
     'topic_name': {
         'service_name': 'google_chat',
         'msg_format': 'card',
-        'webhook_url': 'url'},
+        'webhook_url': '<your Google chat wewbhook url>'},
     'topic_name': {
         'service_name': 'google_chat',
         'msg_format': 'card',
-        'webhook_url': 'url'}
+        'webhook_url': '<your Google chat wewbhook url>'}
 }
 ```
 
-3. (Optional) If you'd like to edit the VM instance that's created in the deployment script you can edit the following:
-```
-  _EnableComputeEngineService(project_id)
-  print('----   Step 8.2: Create a VM instance')
-  vm_name = 'cloud-alerting-test-vm'
-  zone = 'us-east1-b'
-  ```
-
 4. Run the script with the following command:
   ```
-  python3 deploy.py
+  python3 deploy.py -p <your project id>
   ```
 
 ## Manual Deployment
