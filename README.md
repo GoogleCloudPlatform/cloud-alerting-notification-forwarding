@@ -30,13 +30,13 @@ The sample code in this repository is referenced in this **[Cloud Community tuto
 ## Setup
 
 1. Create a [new Google Cloud Platform project from the Cloud
-   Console](https://console.cloud.google.com/project) or use an existing one.
+   Console](https://console.cloud.google.com/project) or use an existing empty project.
 
 2. Be sure to [enable billing](https://cloud.google.com/billing/docs/how-to/modify-project) in your new GCP project.
 
 3. Click the "Open in Cloud Shell" button below to clone and open this repository on Cloud Shell.
 
-[![Open in Cloud Shell](https://gstatic.com/cloudssh/images/open-btn.svg)](github link)
+[![Open in Cloud Shell](https://gstatic.com/cloudssh/images/open-btn.svg)](https://ssh.cloud.google.com/cloudshell/editor?cloudshell_git_repo=https%3A%2F%2Fgithub.com%2Fgooglecloudplatform%2Fcloud-alerting-notification-channel-integration-operations)
 
 ## One Button / Automatic deployment
 
