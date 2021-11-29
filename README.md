@@ -50,32 +50,32 @@ To deploy the notification channel integration sample for the first time automat
 2. In `~/notification_integration/main.py` edit the `config_map` dictionary replacing the webhook_url with your own Google Chat webhook url. 
 ```
 config_map = {
-    'topic_name': {
+    'tf-topic-cpu': {
         'service_name': 'google_chat',
         'msg_format': 'card',
-        'webhook_url': '<your Google chat wewbhook url>'},
-    'topic_name': {
+        'webhook_url': '<YOUR_GOOGLE_CHAT_ROOM_WEBHOOK_URL>'},
+    'tf-topic-disk': {
         'service_name': 'google_chat',
         'msg_format': 'card',
-        'webhook_url': '<your Google chat wewbhook url>'}
+        'webhook_url': '<YOUR_GOOGLE_CHAT_ROOM_WEBHOOK_URL>'}
 }
 ```
 
-4. Run the script with the following command:
+3. Run the script with the following command:
   ```
-  python3 deploy.py -p <your project id>
+  python3 deploy.py -p <PROJECT_ID>
   ```
 
 ## Manual Deployment
 
-To deploy the Google chat integration manually, complete the following steps. Make sure to first complete the integration specific deployment steps.
+To deploy the notification channel integration sample manually, complete the following steps. Make sure to first complete the integration specific deployment steps.
 
-1. Set the Cloud Platform Project in Cloud Shell. Replace `[PROJECT_ID]` with your Cloud Platform project id:
+1. Set the Cloud Platform Project in Cloud Shell. Replace `<PROJECT_ID>` with your Cloud Platform project id:
 ```
-gcloud config set project [PROJECT_ID]
+gcloud config set project <PROJECT_ID>
 ```
 
-2. Create Cloud Storage bucket:
+2. Create Cloud Storage bucket to store Terroform states remotely:
 
 ```
 PROJECT_ID=$(gcloud config get-value project)
@@ -92,32 +92,26 @@ gsutil versioning set on gs://${PROJECT_ID}-tfstate
 4. In `~/notification_integration/main.py` edit the `config_map` variables:
 ```
 config_map = {
-    'topic name':{
+    'tf-topic-cpu': {
         'service_name': 'google_chat',
         'msg_format': 'card',
-        'webhook_url': 'url'
-    }
+        'webhook_url': '<YOUR_GOOGLE_CHAT_ROOM_WEBHOOK_URL>'},
+    'tf-topic-disk': {
+        'service_name': 'google_chat',
+        'msg_format': 'card',
+        'webhook_url': '<YOUR_GOOGLE_CHAT_ROOM_WEBHOOK_URL>'}
 }
 ```
 
-5. (Optional) If you'd like to not expose your webhook urls in the case of a public repo, you can create a gcs bucket to store the webhook url in a json file. Complete the following steps:
-
-Set the ENV variable for `CONFIG_SERVER_TYPE` to `gcs`:
-```
-export CONFIG_SERVER_TYPE=gcs
-```
+5. (Optional) If you'd like to not expose your webhook urls in the case of a public repo, skip Step 4 and create a gcs bucket to store the configuration in a json file. Complete the following steps:
 
 Create the GCS bucket
 ```
 gsutil mb gs://gcs_config_bucket_{PROJECT_ID}
 ```
 
-Upload the json containing the webhook url(s) named `gcs_config_file.json` to the newly created gcs bucket with the format:
-```
-{"topic-name": "webhook-url",
- "topic-name": "webhook-url" 
-}
-```
+Upload a json file containing the configuration data named `config_params.json` to the newly created gcs bucket with the format:
+You can use ~/notification_integration/config_params.json as a template and update the webhook urls to yours.
 
 6. Retrieve the email for your project's Cloud Build service account:
 
@@ -137,12 +131,20 @@ gcloud projects add-iam-policy-binding $PROJECT_ID --member serviceAccount:$CLOU
 gcloud projects add-iam-policy-binding $PROJECT_ID --member serviceAccount:$CLOUDBUILD_SA --role roles/editor
 ```
 
-8. Trigger a build and deploy to Cloud Run. Replace `[BRANCH]` with the current environment branch:
+8. Trigger a build and deploy to Cloud Run. Replace `<BRANCH>` with the current environment branch:
 
 ```
-cd ~/gchat_integration
+cd ~/notification_integration
+```
+If you use the in-memory config server, run
 
-gcloud builds submit . --config cloudbuild.yaml --substitutions BRANCH_NAME=[BRANCH]
+```
+gcloud builds submit . --config cloudbuild.yaml --substitutions BRANCH_NAME=<BRANCH>
+```
+
+If you use the GCS based config server (i.e. you run step 5, instead of step 4), run
+```
+gcloud builds submit . --config cloudbuild.yaml --substitutions BRANCH_NAME=<BRANCH>,_CONFIG_SERVER_TYPE=gcs
 ```
 
 9. Create a VM instance to trigger alert policies:
