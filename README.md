@@ -38,7 +38,7 @@ The sample code in this repository is referenced in this **[Cloud Community tuto
 
 [![Open in Cloud Shell](https://gstatic.com/cloudssh/images/open-btn.svg)](https://ssh.cloud.google.com/cloudshell/editor?cloudshell_git_repo=https%3A%2F%2Fgithub.com%2Fgooglecloudplatform%2Fcloud-alerting-notification-channel-integration-operations)
 
-## One Button / Automatic deployment
+## Automatic deployment
 
 To deploy the notification channel integration sample for the first time automatically, we've provided a script `deploy.py` that will handle a majority of the required actions for deployment. Complete the following steps before running the script.
 
@@ -75,7 +75,37 @@ To deploy the notification channel integration sample manually, complete the fol
 gcloud config set project <PROJECT_ID>
 ```
 
-2. Create Cloud Storage bucket to store Terroform states remotely:
+2. Enable the Cloud Build Service:
+
+```
+gcloud services enable cloudbuild.googleapis.com
+```
+
+3. Enable the Cloud Resource Manager Service:
+
+```
+gcloud services enable cloudresourcemanager.googleapis.com
+```
+
+4. Enable the Cloud Service Usage Service:
+
+```
+gcloud services enable serviceusage.googleapis.com
+```
+
+5. Grant the required permissions to your Cloud Build service account:
+
+```
+CLOUDBUILD_SA="$(gcloud projects describe $PROJECT_ID --format 'value(projectNumber)')@cloudbuild.gserviceaccount.com"
+
+gcloud projects add-iam-policy-binding $PROJECT_ID --member serviceAccount:$CLOUDBUILD_SA --role roles/iam.securityAdmin
+
+gcloud projects add-iam-policy-binding $PROJECT_ID --member serviceAccount:$CLOUDBUILD_SA --role roles/run.admin
+
+gcloud projects add-iam-policy-binding $PROJECT_ID --member serviceAccount:$CLOUDBUILD_SA --role roles/editor
+```
+
+6. Create Cloud Storage bucket to store Terroform states remotely:
 
 ```
 PROJECT_ID=$(gcloud config get-value project)
@@ -83,13 +113,15 @@ PROJECT_ID=$(gcloud config get-value project)
 gsutil mb gs://${PROJECT_ID}-tfstate
 ```
 
-3. (Optional) You may enable Object Versioning to keep the history of your deployments:
+7. (Optional) You may enable Object Versioning to keep the history of your deployments:
 
 ```
 gsutil versioning set on gs://${PROJECT_ID}-tfstate
 ```
 
-4. In `~/notification_integration/main.py` edit the `config_map` variables:
+8. Update the configuration with your own Google chat room webhook Urls.
+
+If you want to use the in-memory configuration server, update the `config_map` variables with your own Google chat room webhook urls in `~/notification_integration/main.py`:
 ```
 config_map = {
     'tf-topic-cpu': {
@@ -103,61 +135,42 @@ config_map = {
 }
 ```
 
-5. (Optional) If you'd like to not expose your webhook urls in the case of a public repo, skip Step 4 and create a gcs bucket to store the configuration in a json file. Complete the following steps:
+If you'd like to not expose your webhook urls in the case of a public repo, create a gcs bucket to store the configuration in a json file. Complete the following steps:
 
-Create the GCS bucket
+a) Create the GCS bucket
 ```
 gsutil mb gs://gcs_config_bucket_{PROJECT_ID}
 ```
 
-Upload a json file containing the configuration data named `config_params.json` to the newly created gcs bucket with the format:
+b) Upload a json file containing the configuration data named `config_params.json` to the newly created gcs bucket
+
 You can use ~/notification_integration/config_params.json as a template and update the webhook urls to yours.
 
-6. Retrieve the email for your project's Cloud Build service account:
+c) Grant the read permissions (Storage Legacy Bucket Reader and
+Storage Legacy Object Reader) to the default Cloud Run service account <PROJECT_NUMBER>-compute@developer.gserviceaccount.com
+8. Trigger a build and deploy to Cloud Run:
+
+If you use the in-memory config server, run (replace `<BRANCH>` with the current environment branch)
 
 ```
-CLOUDBUILD_SA="$(gcloud projects describe $PROJECT_ID --format 'value(projectNumber)')@cloudbuild.gserviceaccount.com"
+gcloud builds submit . --config cloudbuild.yaml --substitutions BRANCH_NAME=<BRANCH>,_CONFIG_SERVER_TYPE=in-memory
 ```
 
-7. Grant the required access to your Cloud Build service account:
-
-```
-gcloud projects add-iam-policy-binding $PROJECT_ID --member serviceAccount:$CLOUDBUILD_SA --role roles/iam.securityAdmin
-
-gcloud projects add-iam-policy-binding $PROJECT_ID --member serviceAccount:$CLOUDBUILD_SA --role roles/run.admin
-
-gcloud projects add-iam-policy-binding $PROJECT_ID --member serviceAccount:$CLOUDBUILD_SA --role roles/storage.admin
-
-gcloud projects add-iam-policy-binding $PROJECT_ID --member serviceAccount:$CLOUDBUILD_SA --role roles/editor
-```
-
-8. Trigger a build and deploy to Cloud Run. Replace `<BRANCH>` with the current environment branch:
-
-```
-cd ~/notification_integration
-```
-If you use the in-memory config server, run
-
-```
-gcloud builds submit . --config cloudbuild.yaml --substitutions BRANCH_NAME=<BRANCH>
-```
-
-If you use the GCS based config server (i.e. you run step 5, instead of step 4), run
+If you use the GCS based config server, run
 ```
 gcloud builds submit . --config cloudbuild.yaml --substitutions BRANCH_NAME=<BRANCH>,_CONFIG_SERVER_TYPE=gcs
 ```
 
+Note that this step uses Terraform to automatically create necessary resources in the Google Cloud Platform project. For more info on what resources are created and managed, refer to the Terraform section below.
+
 9. Create a VM instance to trigger alert policies:
 
 ```
+gcloud services enable compute.googleapis.com
 gcloud compute instances create {vm_name} --zone={zone}
 ```
 
-Note that this step uses Terraform to automatically create necessary resources in the Google Cloud Platform project. For more info on what resources are created and managed, refer to the Terraform section below.
-
-10. Create a Pub/Sub notification channel that uses the topic `tf-topic` (which was created by Terraform in the previous step).
-11. Add the Pub/Sub channel to an alerting policy by selecting Pub/Sub as the channel type and the channel created in the prior step as the notification channel.
-12. Congratulations! Your service is now successfully deployed to Cloud Run and alerts will be forwarded to your provided Google Chat room(s).
+10. Congratulations! Your service should be now successfully deployed to Cloud Run and alerts will be forwarded to your provided Google Chat room(s) in several minutes.
 
 ### Redeploy
 
@@ -165,28 +178,11 @@ If you've already deployed once manually and want to build and redeploy a new ve
 
 1.  Checkout the desired GitHub environment branch.
 
-2.  Trigger a build and deploy to Cloud Run. Replace `[BRANCH]` with the current environment branch:
-
-```
-cd ~/cloud-monitoring-notification-delivery-integration-sample-code
-
-gcloud builds submit . --config cloudbuild.yaml --substitutions BRANCH_NAME=[BRANCH]
-```
+2.  Re-run Step 8.
 
 ## Continuous Deployment
 
 Refer to this solutions guide for instructions on how to setup continuous deployment: TBD
-
-## Running the tests
-
-In order to successfully run unit tests and linter in the section below, setup a virtualenv and install the required dependencies:
-
-```
-virtualenv env
-source env/bin/activate
-
-pip3 install -r utilities/requirements.txt
-```
 
 ### Unit Tests
 
@@ -198,11 +194,7 @@ bash ./scripts/run_tests.sh
 
 ### Linting
 
-To lint project source code with pylint:
-
-```
-bash ./scripts/run_linter.sh
-```
+To be updated.
 
 ## Terraform
 
@@ -212,9 +204,11 @@ Terraform is a HashiCorp open source tool that enables you to predictably create
 
 Terraform will create the following resources in your cloud project:
 * A Cloud Run service called `cloud-run-pubsub-service` to deploy the Flask application
-* A Pub/Sub topic called `tf-topic`
-* A Pub/Sub push subscription called `alert-push-subscription` with a push endpoint to `cloud-run-pubsub-service`
+* Two Pub/Sub topics called `tf-topic-cpu` and `tf-topic-disk`
+* Two Pub/Sub push subscriptions: one is called `alert-push-subscription-cpu` that subscribes the topic `tf-topic-cpu` and the other is called `alert-push-subscription-disk` that subscribes the topic `tf-topic-disk`; both set the push endpoint to `cloud-run-pubsub-service`
 * A service account with ID `cloud-run-pubsub-invoker` to represent the Pub/Sub subscription identity
+* Two Cloud Pub/Sub notification channels
+* Two Cloud Alerting policies: one is based on the GCE instance CPU usage_time metric and the other is based on the GCE instance Disk read_bytes_count metric.
 
 In addition, Terraform configures the following authentication policies:
 * Enabling Pub/Sub to create authentication tokens in your gcloud project
