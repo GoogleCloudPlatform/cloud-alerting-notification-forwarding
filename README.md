@@ -246,7 +246,7 @@ When prompted, type `yes` to confirm changes. Once finished, information about t
 ## Authors
 
 * **Bing Lin** - [binglin1](https://github.com/binglin1)
-* **Dong Wang** - [wdzc](https://github.com/wdzc)
+* **Dong Wang** - [wdzc](https://github.com/wdzc2002)
 
 ## License
 
