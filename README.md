@@ -148,6 +148,7 @@ You can use ~/notification_integration/config_params.json as a template and upda
 
 c) Grant the read permissions (Storage Legacy Bucket Reader and
 Storage Legacy Object Reader) to the default Cloud Run service account <PROJECT_NUMBER>-compute@developer.gserviceaccount.com
+
 8. Trigger a build and deploy to Cloud Run:
 
 If you use the in-memory config server, run (replace `<BRANCH>` with the current environment branch)
