@@ -105,7 +105,7 @@ gcloud projects add-iam-policy-binding $PROJECT_ID --member serviceAccount:$CLOU
 gcloud projects add-iam-policy-binding $PROJECT_ID --member serviceAccount:$CLOUDBUILD_SA --role roles/editor
 ```
 
-6. Create Cloud Storage bucket to store Terroform states remotely:
+6. Create Cloud Storage bucket to store Terraform states remotely:
 
 ```
 PROJECT_ID=$(gcloud config get-value project)
