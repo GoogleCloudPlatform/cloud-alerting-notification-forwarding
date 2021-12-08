@@ -36,7 +36,7 @@ The sample code in this repository is referenced in this **[Cloud Community tuto
 
 3. Click the "Open in Cloud Shell" button below to clone and open this repository on Cloud Shell.
 
-[![Open in Cloud Shell](https://gstatic.com/cloudssh/images/open-btn.svg)](https://ssh.cloud.google.com/cloudshell/editor?cloudshell_git_repo=https%3A%2F%2Fgithub.com%2Fgooglecloudplatform%2Fcloud-alerting-notification-channel-integration-operations)
+[![Open in Cloud Shell](https://gstatic.com/cloudssh/images/open-btn.svg)](https://ssh.cloud.google.com/cloudshell/editor?cloudshell_git_repo=https%3A%2F%2Fgithub.com%2Fgooglecloudplatform%2Fcloud-alerting-notification-forwarding)
 
 ## Automatic deployment
 
