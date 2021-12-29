@@ -2,7 +2,7 @@
 
 **This is not an officially supported Google product.**
 
-This repository provides examples of how a Google Cloud user can forward **[alerting notifications](https://cloud.google.com/monitoring/alerts#how_does_alerting_work)** to third-party integrations not officially supported as **[notification channels](https://cloud.google.com/monitoring/support/notification-options)**. The provided example forwards alerting notifications to  Google chat rooms via Cloud Pus/Sub notification channels. The example accomplishes this through the use of a Flask server running on Cloud Run which receives alerting notifications from Cloud Pub/Sub notification channels, parses them into Google chat messages, and then delivers the messages to Google chat rooms via HTTP requests.
+This repository provides examples of how a Google Cloud user can forward **[alerting notifications](https://cloud.google.com/monitoring/alerts#how_does_alerting_work)** to third-party integrations not officially supported as **[notification channels](https://cloud.google.com/monitoring/support/notification-options)**. The provided example forwards alerting notifications to  Google chat rooms via Cloud Pub/Sub notification channels. The example accomplishes this through the use of a Flask server running on Cloud Run which receives alerting notifications from Cloud Pub/Sub notification channels, parses them into Google chat messages, and then delivers the messages to Google chat rooms via HTTP requests.
 
 The sample code in this repository is referenced in this **[Cloud Community tutorial](To Be Updated)**. 
 
