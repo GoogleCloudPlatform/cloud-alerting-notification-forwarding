@@ -19,9 +19,14 @@ locals {
   disk_pubsub_topic = "tf-topic-disk"
 }
 
-provider "google" {
-  project = var.project_id
-  version = "~> 3.65"  
+terraform {
+  
+  required_providers {
+    google = {
+      source  = "hashicorp/google"
+      version = "~> 3.65"
+    }
+  }
 }
 
 # Setup all pubsub related services and service accounts.
