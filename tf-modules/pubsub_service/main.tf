@@ -1,4 +1,4 @@
-# Copyright 2021 Google LLC
+# Copyright 2024 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -26,7 +26,9 @@ resource "google_project_service" "iam" {
   project  = var.project_id
 }
 
-data "google_project" "project" {}
+data "google_project" "project" {
+    project_id = var.project_id
+}
 
 # Grant permission to the Pub/Sub default service account to create authentication tokens for the
 # service account generated below to invoke Cloud Run service.
@@ -34,7 +36,7 @@ resource "google_project_iam_binding" "project" {
   project = var.project_id
   role    = "roles/iam.serviceAccountTokenCreator"
 
-  # Default Pubsub service account, see 
+  # Default Pubsub service account, see
   # https://cloud.google.com/pubsub/docs/push#setting_up_for_push_authentication.
   members = [
     "serviceAccount:service-${data.google_project.project.number}@gcp-sa-pubsub.iam.gserviceaccount.com"

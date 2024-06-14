@@ -1,4 +1,4 @@
-# Copyright 2021 Google LLC.
+# Copyright 2024 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,9 +19,13 @@ locals {
   disk_pubsub_topic = "tf-topic-disk"
 }
 
-provider "google" {
-  project = var.project_id
-  version = "~> 3.65"  
+terraform {
+  required_providers {
+    google = {
+      source  = "hashicorp/google"
+      version = "~> 3.65"
+    }
+  }
 }
 
 # Setup all pubsub related services and service accounts.
@@ -50,7 +54,7 @@ module "cpu_alert_policy" {
   push_subscription = {
       name              = "alert-push-subscription-cpu"
       push_endpoint     = "${module.cloud_run.url}/${local.cpu_pubsub_topic}"
-  }  
+  }
 }
 
 # Setup a disk usage alerting policy using a Pubsub channel.
@@ -64,5 +68,5 @@ module "disk_alert_policy" {
   push_subscription = {
       name              = "alert-push-subscription-disk"
       push_endpoint     = "${module.cloud_run.url}/${local.disk_pubsub_topic}"
-  }  
+  }
 }
