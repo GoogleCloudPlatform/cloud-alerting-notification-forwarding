@@ -1,4 +1,4 @@
-# Copyright 2021 Google LLC
+# Copyright 2024 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Cloud Build build file for Cloud Alerting notification integration. 
+# Cloud Build build file for Cloud Alerting notification integration.
 # It builds and submits the Docker image of the Cloud Run service that
 # integrates the Google Cloud Alerting PubSub notification channels with
 # a 3rd-party external service (e.g. Google Chat in the example) to Container
@@ -21,7 +21,7 @@
 # For more information about Cloud Build, see:
 # https://cloud.google.com/cloud-build/docs
 # For more information about Cloud Build configuration file schema, see
-# https://cloud.google.com/build/docs/build-config-file-schema 
+# https://cloud.google.com/build/docs/build-config-file-schema
 # For more information about Terraform, see:
 # https://www.terraform.io/docs/index.html
 #
@@ -51,9 +51,9 @@ steps:
 
 - id: 'check for required environment variables'
   name: 'bash'
-  args: 
+  args:
   - '-c'
-  - | 
+  - |
       # check if project id is set
       if [ -z "$PROJECT_ID" ]; then
         echo "***********************"
@@ -66,9 +66,9 @@ steps:
 
 - id: 'check _DRY_RUN option'
   name: 'bash'
-  args: 
+  args:
   - '-c'
-  - | 
+  - |
       if [ "$_DRY_RUN" = "True" ]; then
         echo "***********************"
         echo "[DRY RUN mode] Planning terraform configs from git branch $BRANCH_NAME"
@@ -79,13 +79,13 @@ steps:
         echo "***********************"
         echo "Applying terraform configs from git branch $BRANCH_NAME"
         echo "to google cloud project $PROJECT_ID"
-        echo "***********************"  
+        echo "***********************"
       fi
 
 - id: 'tf init'
-  name: 'hashicorp/terraform:0.12.28'
+  name: 'hashicorp/terraform:1.8.4'
   entrypoint: 'sh'
-  args: 
+  args:
   - '-c'
   - |
       cd environments/$BRANCH_NAME
@@ -94,13 +94,13 @@ steps:
       echo "******* At environment: $BRANCH_NAME ********"
       echo "******* Terraform states are stored in the GCS bucket $PROJECT_ID-tfstate.********"
       echo "*************************************************"
-      terraform init -backend-config "bucket=$PROJECT_ID-tfstate"
+      terraform init -backend-config "bucket=$PROJECT_ID-tfstate" -migrate-state
   timeout: 300s # 5 minutes
 
 - id: 'tf refresh'
-  name: 'hashicorp/terraform:0.12.28'
+  name: 'hashicorp/terraform:1.8.4'
   entrypoint: 'sh'
-  args: 
+  args:
   - '-c'
   - |
       cd environments/$BRANCH_NAME
@@ -112,27 +112,27 @@ steps:
   timeout: 300s # 5 minutes
 
 - id: 'tf plan'
-  name: 'hashicorp/terraform:0.12.28'
+  name: 'hashicorp/terraform:1.8.4'
   entrypoint: 'sh'
-  args: 
+  args:
   - '-c'
-  - | 
+  - |
       cd environments/$BRANCH_NAME
       terraform plan -var="project_id=$PROJECT_ID"
   timeout: 300s # 5 minutes
 
 - id: 'tf apply'
-  name: 'hashicorp/terraform:0.12.28'
+  name: 'hashicorp/terraform:1.8.4'
   entrypoint: 'sh'
-  args: 
+  args:
   - '-c'
-  - | 
+  - |
       if [ "$_DRY_RUN" = "True" ]; then
         echo "***************************** SKIPPING APPLYING *******************************"
         echo "Skipped tf apply since it is a dry run."
         echo "*******************************************************************************"
       else
-        cd environments/$BRANCH_NAME      
+        cd environments/$BRANCH_NAME
         terraform apply -auto-approve -var="project_id=$PROJECT_ID"
       fi
   timeout: 600s # 10 minutes
@@ -140,7 +140,7 @@ steps:
 # set substitution variables
 substitutions:
   _IMAGE_NAME: "cloud-run-pubsub-service"
-  
+
 # image is pushed to Container Registry
 images:
 - 'gcr.io/$PROJECT_ID/${_IMAGE_NAME}'

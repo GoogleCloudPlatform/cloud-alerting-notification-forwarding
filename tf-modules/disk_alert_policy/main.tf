@@ -1,4 +1,4 @@
-# Copyright 2021 Google LLC
+# Copyright 2024 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -29,6 +29,7 @@ module "pubsub_channel" {
 # https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/monitoring_alert_policy
 resource "google_monitoring_alert_policy" "alert_policy" {
   display_name = "Sample Alert Policy: ${var.topic}"
+  project = var.project_id
   combiner     = "OR"
   conditions {
     display_name = "test condition"
@@ -43,7 +44,7 @@ resource "google_monitoring_alert_policy" "alert_policy" {
       aggregations {
         alignment_period   = "60s"
         per_series_aligner = "ALIGN_SUM"
-        cross_series_reducer = "REDUCE_SUM"       
+        cross_series_reducer = "REDUCE_SUM"
       }
     }
   }
