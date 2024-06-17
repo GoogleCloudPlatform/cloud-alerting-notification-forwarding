@@ -15,8 +15,8 @@
 # Main TF module.
 
 locals {
-  cpu_pubsub_topic = "tf-topic-cpu"
-  disk_pubsub_topic = "tf-topic-disk"
+  cpu_pubsub_topic = "tf-topic-cpu-teams"
+  disk_pubsub_topic = "tf-topic-disk-teams"
 }
 
 terraform {
