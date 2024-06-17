@@ -4,7 +4,7 @@
 
 This repository provides examples of how a Google Cloud user can forward **[alerting notifications](https://cloud.google.com/monitoring/alerts#how_does_alerting_work)** to third-party integrations not officially supported as **[notification channels](https://cloud.google.com/monitoring/support/notification-options)**. The provided example forwards alerting notifications to  Google chat rooms via Cloud Pub/Sub notification channels. The example accomplishes this through the use of a Flask server running on Cloud Run which receives alerting notifications from Cloud Pub/Sub notification channels, parses them into Google chat messages, and then delivers the messages to Google chat rooms via HTTP requests.
 
-The sample code in this repository is referenced in this **[Cloud Community Blog Post](https://cloud.google.com/blog/products/operations/write-and-deploy-cloud-monitoring-alert-notifications-to-third-party-services)**. 
+The sample code in this repository is referenced in this **[Cloud Community Blog Post](https://cloud.google.com/blog/products/operations/write-and-deploy-cloud-monitoring-alert-notifications-to-third-party-services)**.
 
 ## Folder Structure
 
@@ -13,7 +13,7 @@ The sample code in this repository is referenced in this **[Cloud Community Blog
     ├── environments                      # Terraform configurations for each environment
     │   ├── main                          #   GitHub main branch
     ├── tf-modules                        # Terraform modules
-    │   ├── cloud_run                     #   Cloud run module    
+    │   ├── cloud_run                     #   Cloud run module
     │   ├── cpu_alert_policy              #   Sample CPU alert policy module
     │   ├── disk_alert_policy             #   Sample disk alert policy module
     │   ├── pubsub_channel                #   Cloud Pub/Sub notification channel module
@@ -47,7 +47,7 @@ To deploy the notification channel integration sample for the first time automat
   python3 --version
   ```
 
-2. In `~/notification_integration/main.py` edit the `config_map` dictionary replacing the webhook_url with your own Google Chat webhook url. 
+2. In `~/notification_integration/main.py` edit the `config_map` dictionary replacing the webhook_url with your own Google Chat webhook url.
 ```
 config_map = {
     'tf-topic-cpu': {
@@ -236,13 +236,89 @@ terraform refresh -var="project=$PROJECT_ID"
 To see what changes will be made without applying them yet:
 ```
 terraform plan -var="project=$PROJECT_ID"
-``` 
+```
 
 Apply configuration changes:
 ```
 terraform apply -var="project=$PROJECT_ID"
 ```
 When prompted, type `yes` to confirm changes. Once finished, information about the created resources should appear in the output.
+
+## GCP -> Opsgenie -> Slack Integration
+
+### Step 1: Add Integration to Forward Messages from GCP to Opsgenie
+
+1. **Create Google Cloud's Operations Suite Integration in Opsgenie**
+
+    #### Add integration
+
+   ![Add integration](./images/integration.png)
+
+    #### Add Google Cloud's operations suite
+
+   ![Add Google Cloud's operations suite](./images/gcp_integration.png)
+
+   #### Set integration name
+
+   ![Set integration name](./images/set_name.png)
+
+   #### Integration Settings
+
+   ![Integration Settings](./images/integration_setting.png)
+
+   #### Set up the info you want to display within Opsgenie Alerts
+
+   ![Set up the info you want to display within Opsgenie Alerts](./images/fileds.png)
+
+   Configure the information you want to display within Opsgenie by using the draggable fields provided by Opsgenie or configure your own raw parameters. For more information, refer to the [Opsgenie documentation on dynamic fields](https://support.atlassian.com/opsgenie/docs/dynamic-fields-in-opsgenie-integrations/).
+
+2. **Set GCP Alert Policy and Notification to Opsgenie via Webhook**
+
+   #### Copy Opsgenie's webhook URL
+
+   ![Copy Opsgenie's webhook URL](./images/webhook.png)
+
+    #### Create GCP Alert Policy
+
+   ![Create GCP Alert Policy](./images/create_policy.png)
+
+   #### Create new webhook notification channel
+
+   ![Create new webhook notification channel](./images/create_new_webhook_notification_channel.png)
+
+   #### Paste your webhook URL, test the connection, and save it
+
+   ![Paste your webhook URL, test the connection, and save it](./images/paste_webhook.png)
+
+   #### Configure your notification and create your policy with the metrics of your selection
+
+   ![Configure your notification and create your policy with the metrics of your selection](./images/configure_notification.png)
+
+### Step 2: Forward Messages from Opsgenie to Slack
+
+1. **Create Slack Integration**
+
+
+   ![Create Slack Integration](./images/slack.png)
+
+2. **Select Slack Teams and Channel for Notification**
+
+   ![Select Slack teams and channel you want to send notification to](./images/select_slack.png)
+
+3. **Select Information to Send to Slack**
+
+   ![Select infos you want to send to Slack](./images/configure_fileds_slack.png)
+
+### Step 3: Results
+
+1. **Alert Shown in Opsgenie**
+
+   ![Alert shown in Opsgenie](./images/opsgenie_result.png)
+
+2. **Alert Shown in Slack**
+
+   ![Alert shown in Slack](./images/slack_result.png)
+
 
 ## Authors
 
