@@ -191,8 +191,8 @@ class GchatHandler(HttpRequestBasedHandler):
 
   # The handler supports two formats: text and card, see https://developers.google.com/chat/api/guides/message-formats/basic and https://developers.google.com/chat/api/guides/message-formats/cards and
   _SUPPORTED_FORMAT = set(['text', 'card'])
-  _RED_COLOR = '#FF0000'  # Red for open issues.
-  _BLUE_COLOR = '#0000FF'  # Blue for closed issues.
+  _OPEN_ISSUE_HEADER_COLOR = '#FF0000'  # Red for open issues.
+  _CLOSED_ISSUE_HEADER_COLOR = '#0000FF'  # Blue for closed issues.
   _GCHAT_SERVICE_NAME = 'google_chat'
   _GCHAT_HTTP_METHOD = 'POST'
   _URL_PARAM_NAME = 'webhook_url'
@@ -264,9 +264,9 @@ class GchatHandler(HttpRequestBasedHandler):
       incident_resource_labels = notification['incident']['resource']['labels']
       incident_url = notification['incident']['url']
       incident_state = notification['incident']['state']
-      header_color = self._BLUE_COLOR
+      header_color = self._CLOSED_ISSUE_HEADER_COLOR
       if incident_state == 'open':
-        header_color = self._RED_COLOR
+        header_color = self._OPEN_ISSUE_HEADER_COLOR
 
       incident_ended_at = notification['incident'].get('ended_at')
       if incident_ended_at:
@@ -359,4 +359,193 @@ class GchatHandler(HttpRequestBasedHandler):
     except BaseException as err:
       logging.error(f'Failed to send the notification: {err}')
       return (str(err), 400)
+    return (content, http_response.status)
+
+
+class MSTeamsHandler(HttpRequestBasedHandler):
+  """Handler that integrates the Google alerting pubsub channel with the Microsoft Teams service.
+
+  It converts a received notification into a well-formatted Microsoft Teams
+  message and sends it to the configured Microsoft Teams channel. The config
+  parameter it needs is the Microsoft Teams channel webhook URL.
+  """
+
+  # The handler supports microsoft teams text and card formats,
+  # see https://learn.microsoft.com/en-us/microsoftteams/platform/webhooks-and
+  # -connectors/how-to/connectors-using?tabs=cURL%2Ctext1#send-messages-using-curl-and-powershell
+  # and https://learn.microsoft.com/en-us/microsoftteams/platform/webhooks-and
+  # -connectors/how-to/add-incoming-webhook?tabs=newteams%2Cdotnet#format-the-message
+  _SUPPORTED_FORMAT = {'text', 'card'}
+  _OPEN_ISSUE_HEADER_COLOR = '#FF0000'  # Red for open issues.
+  _CLOSED_ISSUE_HEADER_COLOR = '#0000FF'  # Blue for closed issues.
+  _TEAMS_SERVICE_NAME = 'microsoft_teams'
+  _TEAMS_HTTP_METHOD = 'POST'
+  _URL_PARAM_NAME = 'webhook_url'
+  _FORMAT_PARAM_NAME = 'msg_format'
+
+  def __init__(self):
+    super().__init__(self._TEAMS_SERVICE_NAME, self._TEAMS_HTTP_METHOD)
+
+  def CheckConfigParams(self, config_params: Dict[str, Any]):
+    """Checks if the given config params is a valid one that has all the necessary configs.
+
+    The Microsoft Teams handler needs the webhook url of a Microsoft Teams
+    channel and the format setting to forward the notifications.
+
+    Args:
+        config_params: A dictionary that includes information about where/how to
+          send notifications to a 3rd-party service.
+
+    Raises:
+        ConfigParamsError: If config parameters are invalid.
+    """
+    self.CheckServiceNameInConfigParams(config_params)
+
+    # The Microsoft Teams channel webhook url is needed to send the requests.
+    if not (
+        self._URL_PARAM_NAME in config_params
+        and isinstance(config_params[self._URL_PARAM_NAME], str)
+    ):
+      raise ConfigParamsError(
+          f'{self._URL_PARAM_NAME} is not set or not a string: {config_params}'
+      )
+
+    if not (
+        self._FORMAT_PARAM_NAME in config_params
+        and config_params[self._FORMAT_PARAM_NAME] in self._SUPPORTED_FORMAT
+    ):
+      raise ConfigParamsError(
+          f'{self._FORMAT_PARAM_NAME} is not set or not a valid option:'
+          f' {config_params}'
+      )
+
+  def _GetHttpUrl(
+      self, config_params: Dict[str, Any], notification: Dict[Any, Any]
+  ) -> str:
+    return config_params[self._URL_PARAM_NAME]
+
+  def _BuildHttpRequestHeaders(
+      self, config_params: Dict[str, Any], notification: Dict[Any, Any]
+  ) -> Dict[str, Any]:
+    http_headers = {'Content-Type': 'application/json; charset=UTF-8'}
+    return http_headers
+
+  def _BuildHttpRequestBody(
+      self, config_params: Dict[str, Any], notification: Dict[Any, Any]
+  ) -> str:
+
+    msg_format = config_params['msg_format']
+    if msg_format == 'text':
+      message_body = {'text': json.dumps(notification)}
+      return json.dumps(message_body)
+
+    assert msg_format == 'card'
+    try:
+      started_time = notification['incident'].get('started_at')
+      if started_time:
+        started_time = datetime.datetime.utcfromtimestamp(int(started_time))
+        started_time_str = started_time.strftime('%Y-%m-%d %H:%M:%S (UTC)')
+      else:
+        started_time_str = ''
+
+      incident_display_name = notification['incident']['condition'][
+          'displayName'
+      ]
+      incident_resource_labels = notification['incident']['resource']['labels']
+      incident_url = notification['incident']['url']
+      incident_state = notification['incident']['state']
+      header_color = self._CLOSED_ISSUE_HEADER_COLOR
+      if incident_state == 'open':
+        header_color = self._OPEN_ISSUE_HEADER_COLOR
+
+      incident_ended_at = notification['incident'].get('ended_at')
+      if incident_ended_at:
+        incident_ended_at = datetime.datetime.utcfromtimestamp(
+            int(incident_ended_at)
+        )
+      else:
+        incident_ended_at = ''
+      incident_summary = notification['incident']['summary']
+    except Exception as e:
+      logging.error('failed to get notification fields %s', notification)
+      raise e
+
+    # Set the alert severity level if it is set in the user labels.
+    try:
+      incident_severity = notification['incident']['severity']
+      incident_severity_display_str = (
+          ', <br><b><font    color="{header_color}">Severity:</font></b>'
+          f' {incident_severity}'
+      )
+    except KeyError:
+      logging.error(
+          'Failed to extract the severity level info : %s', notification
+      )
+      incident_severity_display_str = 'No severity'
+    # TODO: b/341976121 - Update adaptivecard format for
+    # microsoft teams with cl/642685101
+    message_body = {
+        'cards': [{
+            'sections': [{
+                'widgets': [
+                    {
+                        'textParagraph': {
+                            'text': (
+                                '<b><font'
+                                f' color="{header_color}">Summary:</font></b>'
+                                f' {incident_summary}, <br><b><font   '
+                                f' color="{header_color}">State:</font></b>'
+                                f' {incident_state}{incident_severity_display_str}'
+                            )
+                        }
+                    },
+                    {
+                        'textParagraph': {
+                            'text': (
+                                '<b>Condition Display Name:</b>'
+                                f' {incident_display_name} <br><b>Start at:</b>'
+                                f' {started_time_str}<br><b>Incident'
+                                f' Labels:</b> {incident_resource_labels}'
+                            )
+                        }
+                    },
+                    {
+                        'buttons': [{
+                            'textButton': {
+                                'text': 'View Incident Details',
+                                'onClick': {
+                                    'openLink': {'url': f'{incident_url}'}
+                                },
+                            }
+                        }]
+                    },
+                ]
+            }]
+        }]
+    }
+    return json.dumps(message_body)
+
+  def SendNotification(
+      self, config_params: Dict[str, Any], notification: Dict[Any, Any]
+  ) -> Tuple[str, int]:
+    """Sends a notification to a Microsoft Teams Channel."""
+    try:
+      self.CheckConfigParams(config_params)
+    except ConfigParamsError as err:
+      logging.error('Failed to send the notification: %s', err)
+      return (str(err), 400)
+    except Exception as err:  # pylint: disable=broad-except
+      logging.error('Failed to send the notification: %s', err)
+      return (str(err), 500)
+
+    try:
+      logging.info('Sending the notification: %s', notification)
+      # content is of type bytes.
+      http_response, content = self._SendHttpRequest(
+          config_params, notification
+      )
+      logging.info('Successfully sent the notification: %s', http_response)
+    except Exception as err:  # pylint: disable=broad-except
+      logging.error('Failed to send the notification: %s', err)
+      return (str(err), 500)
     return (content, http_response.status)

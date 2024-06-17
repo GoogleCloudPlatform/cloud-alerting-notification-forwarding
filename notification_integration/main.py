@@ -46,15 +46,25 @@ from utilities import config_server, pubsub, service_handler
 # The keys of the config_map corresponds to the local pubsub topic
 # variables in main.tf.
 config_map = {
-    'tf-topic-cpu': {
+    'tf-topic-cpu-gchat': {
         'service_name': 'google_chat',
         'msg_format': 'card',
         'webhook_url': 'https://chat.googleapis.com/v1/spaces/AAAAjOjX3I0/messages?key=AIzaSyDdI0hCZtE6vySjMm-WEfRq3CPzqKqqsHI&token=e9mcRhsfwYw51zvyTJ5ckw7YVC8ViR8bl7dtP8UrJGY%3D',
     },
-    'tf-topic-disk': {
+    'tf-topic-disk-gchat': {
         'service_name': 'google_chat',
         'msg_format': 'card',
         'webhook_url': 'https://chat.googleapis.com/v1/spaces/AAAA9xJV6L8/messages?key=AIzaSyDdI0hCZtE6vySjMm-WEfRq3CPzqKqqsHI&token=cgLW9UExTH8kipz2cBOaj51LOa4d2OJmdsXJkX8-Fas%3D',
+    },
+    'tf-topic-cpu-teams': {
+        'service_name': 'microsoft_teams',
+        'msg_format': 'text',
+        'webhook_url': 'https://ossalerting.webhook.office.com/webhookb2/203ae8c6-65e9-4988-9249-d0ab0d1d0670@a5050f19-682c-4be4-b9a6-f1d556ec71d2/IncomingWebhook/20b98cc4b3a24b87a8384fabd95cc00e/01101e53-5257-4079-887c-eda5cbdcf638',
+    },
+    'tf-topic-disk-teams': {
+        'service_name': 'microsoft_teams',
+        'msg_format': 'text',
+        'webhook_url': 'https://ossalerting.webhook.office.com/webhookb2/203ae8c6-65e9-4988-9249-d0ab0d1d0670@a5050f19-682c-4be4-b9a6-f1d556ec71d2/IncomingWebhook/21ff6e5869804ced8dc6518cd591f2de/01101e53-5257-4079-887c-eda5cbdcf638',
     },
 }
 # By default, we use the in-memory config server created in the above code.
@@ -86,9 +96,12 @@ if config_server_type and config_server_type == 'gcs':
     )
 
 gchat_handler = service_handler.GchatHandler()
+teams_handler = service_handler.TeamsHandler()
 service_names_to_handlers = {
     'google_chat': gchat_handler,
+    'microsoft_teams': teams_handler,
 }
+
 
 app = Flask(__name__)
 

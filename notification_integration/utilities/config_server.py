@@ -17,7 +17,7 @@
 import abc
 import json
 import logging
-from typing import Any, Dict, Text
+from typing import Any, Dict
 from google.cloud import storage
 
 
@@ -33,7 +33,7 @@ class ConfigServerInitError(Error):
   pass
 
 
-class InvalidConfigData(Error):
+class InvalidConfigDataError(Error):
   """Config data is invalid."""
 
   pass
@@ -53,18 +53,18 @@ class ParamNotFoundError(Error):
 
 # Private helper functions.
 def _GetConfigFromConfigMap(
-    config_id: Text, config_map: Dict[Text, Dict[Text, Any]]
-) -> Dict[Text, Any]:
+    config_id: str, config_map: Dict[str, Dict[str, Any]]
+) -> Dict[str, Any]:
   """Retrieves the configuration based on the config ID."""
   try:
-    return config_map[config_id]  # type: Dict[Text, Any]
+    return config_map[config_id]
   except BaseException as e:
     err_msg = f'Failed to get the configuration parameter {config_id}: {e}'
-    raise ConfigNotFoundError(err_msg)
+    raise ConfigNotFoundError(err_msg) from e
 
 
 def _GetConfigParamFromConfigMap(
-    config_id: Text, param_name: Text, config_map: Dict[Text, Dict[Text, Any]]
+    config_id: str, param_name: str, config_map: Dict[str, Dict[str, Any]]
 ) -> Any:
   """Retrieves the configuration parameter based on the config ID and parameter name."""
   config = _GetConfigFromConfigMap(config_id, config_map)
@@ -75,24 +75,23 @@ def _GetConfigParamFromConfigMap(
         'Failed to get the configuration parameter'
         f' {config_id}/{param_name}: {e}'
     )
-    raise ParamNotFoundError(err_msg)
+    raise ParamNotFoundError(err_msg) from e
 
 
 def _ValidateConfigMap(config_map: Any):
-  """Raises exception if the config map is not a valid Dict[Text, Dict[Text, Any]] object."""
+  """Raises exception if the config map is not a valid Dict[str, Dict[str, Any]] object."""
   if not isinstance(config_map, dict):
-    raise InvalidConfigData('The configuration is not a dict json object')
+    raise InvalidConfigDataError('The configuration is not a dict json object')
 
   for k, v in config_map.items():
     if not (isinstance(k, str) and isinstance(v, dict)):
-      raise InvalidConfigData(
-          'The configuration map must be a Dict[Text, Dict[Text, Any]] object.'
+      raise InvalidConfigDataError(
+          'The configuration map must be a Dict[str, Dict[str, Any]] object.'
       )
     for config_k, _ in v.items():
       if not isinstance(config_k, str):
-        raise InvalidConfigData(
-            'The configuration map must be a  Dict[Text, Dict[Text, Any]]'
-            ' object.'
+        raise InvalidConfigDataError(
+            'The configuration map must be a  Dict[str, Dict[str, Any]] object.'
         )
 
 
@@ -100,12 +99,11 @@ class ConfigServer(abc.ABC):
   """Abstract base class that represents a configuration server."""
 
   @abc.abstractmethod
-  def GetConfig(self, config_id: Text) -> Dict[Text, Any]:
+  def GetConfig(self, config_id: str) -> Dict[str, Any]:
     """Retrieves the config parameters from a given configuration.
 
     Args:
        config_id: The id of the configuration to retrieve.
-       param_name: The name of the parameter to retrieve.
 
     Returns:
         The corresponding config parameters.
@@ -116,7 +114,7 @@ class ConfigServer(abc.ABC):
     pass
 
   @abc.abstractmethod
-  def GetConfigParam(self, config_id: Text, param_name: Text) -> Any:
+  def GetConfigParam(self, config_id: str, param_name: str) -> Any:
     """Retrieves the config parameters from a given configuration.
 
     Args:
@@ -141,15 +139,15 @@ class InMemoryConfigServer(ConfigServer):
   the values.
   """
 
-  def __init__(self, config_map: Dict[Text, Dict[Text, Any]]):
+  def __init__(self, config_map: Dict[str, Dict[str, Any]]):
     _ValidateConfigMap(config_map)
     self._config_map = config_map
 
-  def GetConfig(self, config_id: Text) -> Dict[Text, Any]:
+  def GetConfig(self, config_id: str) -> Dict[str, Any]:
     """Retrieves the configuration."""
     return _GetConfigFromConfigMap(config_id, self._config_map)
 
-  def GetConfigParam(self, config_id: Text, param_name: Text) -> Any:
+  def GetConfigParam(self, config_id: str, param_name: str) -> Any:
     """Retrieves the configuration parameter."""
     return _GetConfigParamFromConfigMap(config_id, param_name, self._config_map)
 
@@ -168,7 +166,7 @@ class GcsConfigServer(ConfigServer):
   the GCS object.
   """
 
-  def __init__(self, bucket_name: Text, file_name: Text):
+  def __init__(self, bucket_name: str, file_name: str):
     try:
       storage_client = storage.Client()
       bucket = storage_client.get_bucket(bucket_name)
@@ -176,7 +174,7 @@ class GcsConfigServer(ConfigServer):
       err_msg = 'Failed to get the GCS bucket {bucket_name}: {e}'.format(
           bucket_name=bucket_name, e=e
       )
-      raise ConfigServerInitError(err_msg)
+      raise ConfigServerInitError(err_msg) from e
 
     try:
       blob = bucket.get_blob(file_name)
@@ -186,7 +184,7 @@ class GcsConfigServer(ConfigServer):
               bucket_name=bucket_name, file_name=file_name, e=e
           )
       )
-      raise ConfigServerInitError(err_msg)
+      raise ConfigServerInitError(err_msg) from e
 
     try:
       raw_content = blob.download_as_string()
@@ -196,20 +194,21 @@ class GcsConfigServer(ConfigServer):
           'Failed to load the configuration map from the GCS '
           'object {bucket_name}/{file_name} {e}'
       ).format(bucket_name=bucket_name, file_name=file_name, e=e)
-      raise ConfigServerInitError(err_msg)
+      raise ConfigServerInitError(err_msg) from e
 
     _ValidateConfigMap(config_map)
     self._in_memory_server = InMemoryConfigServer(config_map)
 
     logging.info(
-        'Sucessfully loaded the config data from {bucket_name}/{file_name}'
-        .format(bucket_name=bucket_name, file_name=file_name)
+        'Successfully loaded the config data from %s/%s',
+        bucket_name,
+        file_name,
     )
 
-  def GetConfig(self, config_id: Text) -> Dict[Text, Any]:
+  def GetConfig(self, config_id: str) -> Dict[str, Any]:
     """Retrieves the configuration."""
     return self._in_memory_server.GetConfig(config_id)
 
-  def GetConfigParam(self, config_id: Text, param_name: Text) -> Any:
+  def GetConfigParam(self, config_id: str, param_name: str) -> Any:
     """Retrieves the configuration parameter."""
     return self._in_memory_server.GetConfigParam(config_id, param_name)

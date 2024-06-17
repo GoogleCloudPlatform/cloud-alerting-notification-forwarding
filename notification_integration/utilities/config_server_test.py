@@ -11,10 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Unit tests for config_server.py"""
+"""Unit tests for config_server.py."""
 import json
 import unittest
-from unittest.mock import Mock
 from google.cloud import storage
 from utilities import config_server
 
@@ -35,6 +34,8 @@ class ConfigServerTest(unittest.TestCase):
 class InMemoryConfigServerTest(unittest.TestCase):
 
   def setUp(self):
+    # Call to the parent class's setUp method
+    super().setUp()
     self._test_server = config_server.InMemoryConfigServer(_VALID_CONFIG_MAP)
 
   def testInitFailedDueToBadConfigMap(self):
@@ -72,24 +73,30 @@ class InMemoryConfigServerTest(unittest.TestCase):
 class GcsConfigServerTest(unittest.TestCase):
 
   def setUp(self):
+    # Call to the parent class's setUp method
+    super().setUp()
+
     # To mock the GCS blob returned by bucket.get_blob.
-    self._blob_mock = Mock()
+    self._blob_mock = unittest.Mock()
 
     # To mock the GCS bucket returned by storage_client.get_bucket.
-    self._bucket_mock = Mock()
-    self._bucket_mock.get_blob = Mock(return_value=self._blob_mock)
+    self._bucket_mock = unittest.Mock()
+    self._bucket_mock.get_blob = unittest.Mock(return_value=self._blob_mock)
 
     # To mock storage_client.
-    self._storage_client_mock = Mock()
-    self._storage_client_mock.get_bucket = Mock(return_value=self._bucket_mock)
+    self._storage_client_mock = unittest.Mock()
+    self._storage_client_mock.get_bucket = unittest.Mock(
+        return_value=self._bucket_mock
+    )
 
-    storage.Client = Mock(return_value=self._storage_client_mock)
+    storage.Client = unittest.Mock(return_value=self._storage_client_mock)
 
     # Dummy GCS bucket name and GCS object name used in the tests.
     self._test_bucket = 'test_bucket'
     self._test_filename = 'test_file'
 
-    # Create a test server and reset all the call attributes on the mock objects.
+    # Create a test server and reset all the call
+    # attributes on the mock objects.
     self._blob_mock.download_as_string.return_value = _VALID_CONFIG_MAP_JSON_STR
     self._test_server = config_server.GcsConfigServer(
         self._test_bucket, self._test_filename
