@@ -1,4 +1,4 @@
-# Copyright 2021 Google LLC.
+# Copyright 2024 Google LLC.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -58,13 +58,13 @@ config_map = {
     },
     'tf-topic-cpu-teams': {
         'service_name': 'microsoft_teams',
-        'msg_format': 'text',
-        'webhook_url': 'https://ossalerting.webhook.office.com/webhookb2/203ae8c6-65e9-4988-9249-d0ab0d1d0670@a5050f19-682c-4be4-b9a6-f1d556ec71d2/IncomingWebhook/20b98cc4b3a24b87a8384fabd95cc00e/01101e53-5257-4079-887c-eda5cbdcf638',
+        'msg_format': 'card',
+        'webhook_url': 'https://ossalerting.webhook.office.com/webhookb2/203ae8c6-65e9-4988-9249-d0ab0d1d0670@a5050f19-682c-4be4-b9a6-f1d556ec71d2/IncomingWebhook/c42c54ec0f63425281b9a510ffc29689/01101e53-5257-4079-887c-eda5cbdcf638',
     },
     'tf-topic-disk-teams': {
         'service_name': 'microsoft_teams',
         'msg_format': 'text',
-        'webhook_url': 'https://ossalerting.webhook.office.com/webhookb2/203ae8c6-65e9-4988-9249-d0ab0d1d0670@a5050f19-682c-4be4-b9a6-f1d556ec71d2/IncomingWebhook/21ff6e5869804ced8dc6518cd591f2de/01101e53-5257-4079-887c-eda5cbdcf638',
+        'webhook_url': 'https://ossalerting.webhook.office.com/webhookb2/203ae8c6-65e9-4988-9249-d0ab0d1d0670@a5050f19-682c-4be4-b9a6-f1d556ec71d2/IncomingWebhook/3c959ffad0b44fb9ba0f86f0d4dbe1c3/01101e53-5257-4079-887c-eda5cbdcf638',
     },
 }
 # By default, we use the in-memory config server created in the above code.
@@ -96,7 +96,7 @@ if config_server_type and config_server_type == 'gcs':
     )
 
 gchat_handler = service_handler.GchatHandler()
-teams_handler = service_handler.TeamsHandler()
+teams_handler = service_handler.MSTeamsHandler()
 service_names_to_handlers = {
     'google_chat': gchat_handler,
     'microsoft_teams': teams_handler,

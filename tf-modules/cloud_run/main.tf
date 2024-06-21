@@ -1,4 +1,4 @@
-# Copyright 2021 Google LLC
+# Copyright 2024 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,7 +13,7 @@
 # limitations under the License.
 
 # TF module that sets up a Cloud Run service that integrates Google Cloud
-# Alerting PubSub notification channels with 3rd-party services, e.g. 
+# Alerting PubSub notification channels with 3rd-party services, e.g.
 # Google Chat. It also grants the invoker role to the service account
 # used by the push subscriptions of the PubSub notification channels that
 # automatically forward the PubSub messages to the Cloud Run server.
@@ -38,7 +38,7 @@ resource "google_cloud_run_service" "cloud_run_pubsub_service" {
       }
     }
     metadata {
-      # Use uuid() to generate a unique name.  
+      # Use uuid() to generate a unique name.
       name = "cloud-run-pubsub-service-${uuid()}"
     }
   }
@@ -53,7 +53,7 @@ resource "google_cloud_run_service" "cloud_run_pubsub_service" {
 # Grant the service account that represents the push subscriptions of the
 # Cloud Alerting PubSub notifications channels (i.e. topics) the invoke
 # role of the Cloud Run service.
-# More details can be found at 
+# More details can be found at
 # https://cloud.google.com/run/docs/tutorials/pubsub#integrating-pubsub
 resource "google_cloud_run_service_iam_binding" "binding" {
   location  = google_cloud_run_service.cloud_run_pubsub_service.location

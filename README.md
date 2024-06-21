@@ -324,6 +324,8 @@ When prompted, type `yes` to confirm changes. Once finished, information about t
 
 * **Bing Lin** - [binglin1](https://github.com/binglin1)
 * **Dong Wang** - [wdzc2002](https://github.com/wdzc2002)
+* **Yufei Zhang** - [z-nand](https://github.com/z-nand)
+* **Xuan Jiang** - [Xuan-1998](https://github.com/Xuan-1998)
 
 ## License
 
@@ -334,7 +336,7 @@ doesn't comply with the license.)
 
 Apache header:
 
-    Copyright 2021 Google LLC
+    Copyright 2024 Google LLC
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
