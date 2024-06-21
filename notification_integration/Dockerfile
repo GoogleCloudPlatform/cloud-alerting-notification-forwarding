@@ -1,4 +1,4 @@
-# Copyright 2021 Google LLC.
+# Copyright 2024 Google LLC.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -42,7 +42,7 @@ ENV PROJECT_ID=$PROJECT_ID
 ARG CONFIG_SERVER_TYPE
 ENV CONFIG_SERVER_TYPE=$CONFIG_SERVER_TYPE
 
-# Run the web service on container startup. 
+# Run the web service on container startup.
 # Use gunicorn webserver with one worker process and 8 threads.
 # For environments with multiple CPU cores, increase the number of workers
 # to be equal to the cores available.

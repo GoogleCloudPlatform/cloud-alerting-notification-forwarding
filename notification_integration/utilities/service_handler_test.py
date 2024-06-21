@@ -1,4 +1,4 @@
-# Copyright 2021 Google LLC.
+# Copyright 2024 Google LLC.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -310,7 +310,7 @@ class GchatHandlerTest(unittest.TestCase):
     )
 
 
-class TeamsHandlerTest(unittest.TestCase):
+class MSTeamsHandlerTest(unittest.TestCase):
 
   def setUp(self):
     super().setUp()
@@ -319,7 +319,7 @@ class TeamsHandlerTest(unittest.TestCase):
     httplib2.Http = self._http_mock
 
   def testCheckServiceNameInConfigParamsFailed(self):
-    handler = service_handler.TeamsHandler()
+    handler = service_handler.MSTeamsHandler()
     bad_configs = [
         {'service': _SERVICE_NAME_TEAMS},  # Bad key
         {'service_name': 'wrong_xxx'},  # Bad value
@@ -329,24 +329,24 @@ class TeamsHandlerTest(unittest.TestCase):
         handler.CheckServiceNameInConfigParams(bad_config)
 
   def testCheckConfigParamsFailed(self):
-    handler = service_handler.TeamsHandler()
+    handler = service_handler.MSTeamsHandler()
     for bad_config in _BAD_CONFIG_PARAMS_TEAMS:
       with self.assertRaises(service_handler.ConfigParamsError):
         handler.CheckConfigParams(bad_config)
 
   def testSendNotificationFailedDueToBadConfig(self):
-    handler = service_handler.TeamsHandler()
+    handler = service_handler.MSTeamsHandler()
     for bad_config in _BAD_CONFIG_PARAMS_TEAMS:
       _, status_code = handler.SendNotification(bad_config, _NOTIF)
       self.assertEqual(status_code, 400)
 
   def testSendNotificationFailedDueToUnexpectedCheckConfigParamsException(self):
-    handler = service_handler.TeamsHandler()
+    handler = service_handler.MSTeamsHandler()
     _, status_code = handler.SendNotification(None, _NOTIF)
     self.assertEqual(status_code, 500)
 
   def testSendNotificationFormatTextFailedDueToException(self):
-    handler = service_handler.TeamsHandler()
+    handler = service_handler.MSTeamsHandler()
     config_params = _CONFIG_PARAMS_TEAMS.copy()
     self._http_obj_mock.request.side_effect = Exception('unknown exception')
     config_params['msg_format'] = 'text'
@@ -355,7 +355,7 @@ class TeamsHandlerTest(unittest.TestCase):
     self._http_obj_mock.request.assert_called_once()
 
   def testSendNotificationFormatTextSucceed(self):
-    handler = service_handler.TeamsHandler()
+    handler = service_handler.MSTeamsHandler()
     config_params = _CONFIG_PARAMS_TEAMS.copy()
     config_params['msg_format'] = 'text'
     self._http_obj_mock.request.return_value = (
@@ -400,7 +400,7 @@ class TeamsHandlerTest(unittest.TestCase):
     )
 
   def testSendNotificationFormatCardSucceed(self):
-    handler = service_handler.TeamsHandler()
+    handler = service_handler.MSTeamsHandler()
     self._http_obj_mock.request.return_value = (
         httplib2.Response({'status': 200}),
         b'OK',
@@ -431,7 +431,7 @@ class TeamsHandlerTest(unittest.TestCase):
     )
 
   def testSendNotificationFormatTextNon200Status(self):
-    handler = service_handler.TeamsHandler()
+    handler = service_handler.MSTeamsHandler()
     config_params = _CONFIG_PARAMS_TEAMS.copy()
     self._http_obj_mock.request.return_value = (
         httplib2.Response({'status': 500}),
@@ -445,7 +445,7 @@ class TeamsHandlerTest(unittest.TestCase):
 
   def testSendNotificationFormatCardFailedDueToMissingField(self):
     missing_fields = ['condition', 'resource', 'url', 'state', 'summary']
-    handler = service_handler.TeamsHandler()
+    handler = service_handler.MSTeamsHandler()
     self._http_obj_mock.request.return_value = (
         httplib2.Response({'status': 200}),
         b'OK',
@@ -458,7 +458,7 @@ class TeamsHandlerTest(unittest.TestCase):
       self.assertEqual(status_code, 400)
 
   def testSendNotificationFormatCardStartedAtMissing(self):
-    handler = service_handler.TeamsHandler()
+    handler = service_handler.MSTeamsHandler()
     notif_without_startime = copy.deepcopy(_NOTIF)
     del notif_without_startime['incident']['started_at']
     self._http_obj_mock.request.return_value = (
