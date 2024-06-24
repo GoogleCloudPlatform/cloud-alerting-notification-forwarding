@@ -2,9 +2,38 @@
 
 **This is not an officially supported Google product.**
 
-This repository provides examples of how a Google Cloud user can forward **[alerting notifications](https://cloud.google.com/monitoring/alerts#how_does_alerting_work)** to third-party integrations not officially supported as **[notification channels](https://cloud.google.com/monitoring/support/notification-options)**. The provided example forwards alerting notifications to  Google chat rooms via Cloud Pub/Sub notification channels. The example accomplishes this through the use of a Flask server running on Cloud Run which receives alerting notifications from Cloud Pub/Sub notification channels, parses them into Google chat messages, and then delivers the messages to Google chat rooms via HTTP requests.
+This repository provides examples of how a Google Cloud user can seamlessly integrate **[alerting notifications](https://cloud.google.com/monitoring/alerts#how_does_alerting_work)** with various third-party platforms. While this approach isn't officially supported as one of Google's **[notification channels](https://cloud.google.com/monitoring/support/notification-options)**, it enables sending notifications to any public or private endpoint using Webhooks and Cloud Pub/Sub.
+
+Notifications from Cloud Alerting can be sent to any third-party integration, including platforms like OpsGenie, ServiceNow, Microsoft Teams, private tools, and more. Two examples are shared below to illustrate the versatility of this method:
+
+Google Chat Integration: This example demonstrates how to forward alerting notifications to Google Chat rooms. It uses a Flask server running on Cloud Run to receive notifications from Cloud Pub/Sub, parse them into Google Chat messages, and deliver them via HTTP requests.
+
+OpsGenie to Slack Integration: This example shows how to send Cloud Alerting notifications to OpsGenie, which then forwards the notifications to Slack, showcasing a multi-step integration.
+
+By leveraging these examples, you can enhance your notification capabilities and ensure your team stays informed across the platforms you use most.
 
 The sample code in this repository is referenced in this **[Cloud Community Blog Post](https://cloud.google.com/blog/products/operations/write-and-deploy-cloud-monitoring-alert-notifications-to-third-party-services)**.
+
+# Table of Contents
+
+1. [Folder Structure](#folder-structure)
+2. [Setup](#setup)
+3. [Automatic Deployment](#automatic-deployment)
+4. [Manual Deployment](#manual-deployment)
+5. [Redeploy](#redeploy)
+6. [Continuous Deployment](#continuous-deployment)
+7. [Unit Tests](#unit-tests)
+8. [Linting](#linting)
+9. [Terraform](#terraform)
+   - [Resources Provisioned with Terraform](#resources-provisioned-with-terraform)
+   - [Run Terraform Manually](#run-terraform-manually)
+10. [GCP -> OpsGenie -> Slack Integration](#gcp--opsgenie--slack-integration)
+   - [Step 1: Add Integration to Forward Messages from GCP to OpsGenie](#step-1-add-integration-to-forward-messages-from-gcp-to-opsgenie)
+   - [Step 2: Forward Messages from OpsGenie to Slack](#step-2-forward-messages-from-opsgenie-to-slack)
+   - [Step 3: Results](#step-3-results)
+11. [Authors](#authors)
+12. [License](#license)
+
 
 ## Folder Structure
 
@@ -71,107 +100,108 @@ config_map = {
 To deploy the notification channel integration sample manually, complete the following steps. Make sure to first complete the integration specific deployment steps.
 
 1. Set the Cloud Platform Project in Cloud Shell. Replace `<PROJECT_ID>` with your Cloud Platform project id:
-```
-gcloud config set project <PROJECT_ID>
-```
+
+    ```bash
+    gcloud config set project <PROJECT_ID>
+    ```
 
 2. Enable the Cloud Build Service:
 
-```
-gcloud services enable cloudbuild.googleapis.com
-```
+    ```bash
+    gcloud services enable cloudbuild.googleapis.com
+    ```
 
 3. Enable the Cloud Resource Manager Service:
 
-```
-gcloud services enable cloudresourcemanager.googleapis.com
-```
+    ```bash
+    gcloud services enable cloudresourcemanager.googleapis.com
+    ```
 
 4. Enable the Cloud Service Usage Service:
 
-```
-gcloud services enable serviceusage.googleapis.com
-```
+    ```bash
+    gcloud services enable serviceusage.googleapis.com
+    ```
 
 5. Grant the required permissions to your Cloud Build service account:
 
-```
-CLOUDBUILD_SA="$(gcloud projects describe $PROJECT_ID --format 'value(projectNumber)')@cloudbuild.gserviceaccount.com"
+    ```bash
+    CLOUDBUILD_SA="$(gcloud projects describe $PROJECT_ID --format 'value(projectNumber)')@cloudbuild.gserviceaccount.com"
 
-gcloud projects add-iam-policy-binding $PROJECT_ID --member serviceAccount:$CLOUDBUILD_SA --role roles/iam.securityAdmin
+    gcloud projects add-iam-policy-binding $PROJECT_ID --member serviceAccount:$CLOUDBUILD_SA --role roles/iam.securityAdmin
 
-gcloud projects add-iam-policy-binding $PROJECT_ID --member serviceAccount:$CLOUDBUILD_SA --role roles/run.admin
+    gcloud projects add-iam-policy-binding $PROJECT_ID --member serviceAccount:$CLOUDBUILD_SA --role roles/run.admin
 
-gcloud projects add-iam-policy-binding $PROJECT_ID --member serviceAccount:$CLOUDBUILD_SA --role roles/editor
-```
+    gcloud projects add-iam-policy-binding $PROJECT_ID --member serviceAccount:$CLOUDBUILD_SA --role roles/editor
+    ```
 
 6. Create Cloud Storage bucket to store Terraform states remotely:
 
-```
-PROJECT_ID=$(gcloud config get-value project)
+    ```bash
+    PROJECT_ID=$(gcloud config get-value project)
 
-gsutil mb gs://${PROJECT_ID}-tfstate
-```
+    gsutil mb gs://${PROJECT_ID}-tfstate
+    ```
 
 7. (Optional) You may enable Object Versioning to keep the history of your deployments:
 
-```
-gsutil versioning set on gs://${PROJECT_ID}-tfstate
-```
+    ```bash
+    gsutil versioning set on gs://${PROJECT_ID}-tfstate
+    ```
 
-8. Update the configuration with your own Google chat room webhook Urls.
+8. Update the configuration with your own Google chat room webhook URLs.
 
-If you want to use the in-memory configuration server, update the `config_map` variables with your own Google chat room webhook urls in `~/notification_integration/main.py`:
-```
-config_map = {
-    'tf-topic-cpu': {
-        'service_name': 'google_chat',
-        'msg_format': 'card',
-        'webhook_url': '<YOUR_GOOGLE_CHAT_ROOM_WEBHOOK_URL>'},
-    'tf-topic-disk': {
-        'service_name': 'google_chat',
-        'msg_format': 'card',
-        'webhook_url': '<YOUR_GOOGLE_CHAT_ROOM_WEBHOOK_URL>'}
-}
-```
+    If you want to use the in-memory configuration server, update the `config_map` variables with your own Google chat room webhook URLs in `~/notification_integration/main.py`:
 
-If you'd like to not expose your webhook urls in the case of a public repo, create a gcs bucket to store the configuration in a json file. Complete the following steps:
+    ```python
+    config_map = {
+        'tf-topic-cpu': {
+            'service_name': 'google_chat',
+            'msg_format': 'card',
+            'webhook_url': '<YOUR_GOOGLE_CHAT_ROOM_WEBHOOK_URL>'},
+        'tf-topic-disk': {
+            'service_name': 'google_chat',
+            'msg_format': 'card',
+            'webhook_url': '<YOUR_GOOGLE_CHAT_ROOM_WEBHOOK_URL>'}
+    }
+    ```
 
-a) Create the GCS bucket
-```
-gsutil mb gs://gcs_config_bucket_{PROJECT_ID}
-```
+    If you'd like to not expose your webhook URLs in the case of a public repo, create a GCS bucket to store the configuration in a JSON file. Complete the following steps:
 
-b) Upload a json file containing the configuration data named `config_params.json` to the newly created gcs bucket
+    a) Create the GCS bucket:
 
-You can use ~/notification_integration/config_params.json as a template and update the webhook urls to yours.
+    ```bash
+    gsutil mb gs://gcs_config_bucket_{PROJECT_ID}
+    ```
 
-c) Grant the read permissions (Storage Legacy Bucket Reader and
-Storage Legacy Object Reader) to the default Cloud Run service account <PROJECT_NUMBER>-compute@developer.gserviceaccount.com
+    b) Upload a JSON file containing the configuration data named `config_params.json` to the newly created GCS bucket.
 
-8. Trigger a build and deploy to Cloud Run:
+        You can use `~/notification_integration/config_params.json` as a template and update the webhook URLs to yours.
 
-If you use the in-memory config server, run (replace `<BRANCH>` with the current environment branch)
+    c) Grant the read permissions (Storage Legacy Bucket Reader and Storage Legacy Object Reader) to the default Cloud Run service account `<PROJECT_NUMBER>-compute@developer.gserviceaccount.com`
 
-```
-gcloud builds submit . --config cloudbuild.yaml --substitutions BRANCH_NAME=<BRANCH>,_CONFIG_SERVER_TYPE=in-memory
-```
+9. Trigger a build and deploy to Cloud Run:
 
-If you use the GCS based config server, run
-```
-gcloud builds submit . --config cloudbuild.yaml --substitutions BRANCH_NAME=<BRANCH>,_CONFIG_SERVER_TYPE=gcs
-```
+    If you use the in-memory config server, run (replace `<BRANCH>` with the current environment branch)
+    ```bash
+    gcloud builds submit . --config cloudbuild.yaml --substitutions BRANCH_NAME=<BRANCH>,_CONFIG_SERVER_TYPE=in-memory
+    ```
 
-Note that this step uses Terraform to automatically create necessary resources in the Google Cloud Platform project. For more info on what resources are created and managed, refer to the Terraform section below.
+    If you use the GCS based config server, run
+    ```bash
+    gcloud builds submit . --config cloudbuild.yaml --substitutions BRANCH_NAME=<BRANCH>,_CONFIG_SERVER_TYPE=gcs
+    ```
 
-9. Create a VM instance to trigger alert policies:
+    Note that this step uses Terraform to automatically create necessary resources in the Google Cloud Platform project. For more info on what resources are created and managed, refer to the Terraform section below.
 
-```
-gcloud services enable compute.googleapis.com
-gcloud compute instances create {vm_name} --zone={zone}
-```
+10. Create a VM instance to trigger alert policies:
+    ```bash
+    gcloud services enable compute.googleapis.com
+    gcloud compute instances create {vm_name} --zone={zone}
+    ```
 
-10. Congratulations! Your service should be now successfully deployed to Cloud Run and alerts will be forwarded to your provided Google Chat room(s) in several minutes.
+11. Congratulations! Your service should be now successfully deployed to Cloud Run and alerts will be forwarded to your provided Google Chat room(s) in several minutes.
+
 
 ### Redeploy
 
@@ -181,9 +211,7 @@ If you've already deployed once manually and want to build and redeploy a new ve
 
 2.  Re-run Step 8.
 
-## Continuous Deployment
 
-Refer to this solutions guide for instructions on how to setup continuous deployment: TBD
 
 ### Unit Tests
 
@@ -195,7 +223,8 @@ bash ./scripts/run_tests.sh
 
 ### Linting
 
-To be updated.
+To ensure code quality and maintain consistent coding standards, the codebase was run against linting checks.
+
 
 ## Terraform
 
