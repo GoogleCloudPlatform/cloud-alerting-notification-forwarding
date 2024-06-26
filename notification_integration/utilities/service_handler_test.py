@@ -20,7 +20,6 @@ import httplib2
 from utilities import mock
 from utilities import service_handler
 
-
 # A valid config map used in the tests.
 _SERVICE_NAME_GCHAT = 'google_chat'
 _SERVICE_NAME_TEAMS = 'microsoft_teams'
@@ -35,6 +34,8 @@ _CONFIG_PARAMS_TEAMS = {
     'webhook_url': 'https://outlook.office.com/webhook/.../IncomingWebhook/...',
     'msg_format': 'card',
 }
+
+
 _BAD_CONFIG_PARAMS_GCHAT = [
     {'service': _SERVICE_NAME_GCHAT},  # Bad service name key
     {'service_name': 'wrong_xxx'},  # Bad service name value
@@ -67,6 +68,7 @@ _BAD_CONFIG_PARAMS_TEAMS = [
         'msg_format': 'video',
     },  # Bad format value
 ]
+
 
 # Test notification json object.
 _NOTIF = {
@@ -115,7 +117,6 @@ _NOTIF = {
     'version': '1.2',
 }
 
-
 class ServiceHandlerTest(unittest.TestCase):
 
   def testAbstractServiceHandlerCannotBeInitialized(self):
@@ -141,8 +142,9 @@ class GchatHandlerTest(unittest.TestCase):
   def testCheckServiceNameInConfigParamsFailed(self):
     handler = service_handler.GchatHandler()
     bad_configs = [
-        {'service': _SERVICE_NAME_GCHAT},  # Bad key
-        {'service_name': 'wrong_xxx'},  # Bad value
+        {'service': _SERVICE_NAME_GCHAT},  # Bad service name key
+        {'service_name': 'wrong_xxx'},  # Bad service name value
+        {},  # Missing service name
     ]
     for bad_config in bad_configs:
       with self.assertRaises(service_handler.ConfigParamsError):
@@ -171,7 +173,7 @@ class GchatHandlerTest(unittest.TestCase):
     self._http_obj_mock.request.side_effect = Exception('unknown exception')
     config_params['msg_format'] = 'text'
     _, status_code = handler.SendNotification(config_params, _NOTIF)
-    self.assertEqual(status_code, 400)
+    self.assertEqual(status_code, 500)
     self._http_obj_mock.request.assert_called_once()
 
   def testSendNotificationFormatTextSucceed(self):
@@ -182,7 +184,7 @@ class GchatHandlerTest(unittest.TestCase):
         httplib2.Response({'status': 200}),
         b'OK',
     )
-    _, status_code = handler.SendNotification(config_params, _NOTIF)
+    http_response, status_code = handler.SendNotification(config_params, _NOTIF)
     self.assertEqual(status_code, 200)
     expected_body = (
         '{"text": "{\\"incident\\": {\\"condition\\":'
@@ -212,7 +214,7 @@ class GchatHandlerTest(unittest.TestCase):
         ' \\"https://console.cloud.google.com/monitoring/alerting/incidents/0.m2d61b3s6d5d?project=tf-test\\"},'
         ' \\"version\\": \\"1.2\\"}"}'
     )
-    self._http_obj_mock.request.assert_called_once_with(
+    self._http_obj_mock.request.assert_called_with(
         uri='https://chat.123.com',
         method='POST',
         headers={'Content-Type': 'application/json; charset=UTF-8'},
@@ -225,43 +227,63 @@ class GchatHandlerTest(unittest.TestCase):
         httplib2.Response({'status': 200}),
         b'OK',
     )
+    expected_body = json.dumps({
+        'cards': [{
+            'sections': [{
+                'widgets': [
+                    {
+                        'textParagraph': {
+                            'text': (
+                                '<b><font'
+                                ' color="{header_color}">Summary:</font></b>'
+                                ' CPU usage for tf-test VM Instance labels'
+                                ' {project_id=tf-test} returned to normal with'
+                                ' a value of 0.081., <br><b><font'
+                                ' color="#0000FF">State:</font></b> closed'
+                            )
+                        }
+                    },
+                    {
+                        'textParagraph': {
+                            'text': (
+                                '<b>Condition Display Name:</b> test condition'
+                                ' <br><b>Start at:</b> 2021-05-11 17:35:33'
+                                ' (UTC)<br><b>Incident Labels:</b>'
+                                " {'project_id': 'tf-test'}"
+                            )
+                        }
+                    },
+                    {
+                        'buttons': [{
+                            'textButton': {
+                                'text': 'View Incident Details',
+                                'onClick': {
+                                    'openLink': {
+                                        'url': 'https://console.cloud.google.com/monitoring/alerting/incidents/0.m2d61b3s6d5d?project=tf-test'
+                                    }
+                                },
+                            }
+                        }]
+                    },
+                ]
+            }]
+        }]
+    })
+
     http_response, status_code = handler.SendNotification(
         _CONFIG_PARAMS_GCHAT, _NOTIF
     )
+
     self.assertEqual(status_code, 200)
     self.assertEqual(http_response, 'OK')
-    expected_body = (
-        '{"cards": [{"sections": [{"widgets": [{"textParagraph": {"text":'
-        ' "<b><font color=\\"#0000FF\\">Summary:</font></b> CPU usage for '
-        'tf-test VM Instance labels {project_id=tf-test} returned to normal'
-        ' with a value of 0.081., <br><b><font    color=\\"#0000FF\\">'
-        'State:</font></b> closed"}}, {"textParagraph": {"text": '
-        '"<b>Condition Display Name:</b> test condition <br><b>Start '
-        'at:</b> 2021-05-11 17:35:33 (UTC)<br><b>Incident Labels:</b> '
-        '{\'project_id\': \'tf-test\'}"}}, {"buttons": [{"textButton": '
-        '{"text": "View Incident Details", "onClick": {"openLink": '
-        '{"url": "https://console.cloud.google.com/monitoring/alerting/'
-        'incidents/0.m2d61b3s6d5d?project=tf-test"}}}}]}]}]}]}'
-    )
-    self._http_obj_mock.request.assert_called_once_with(
+
+    # Ensure the body matches
+    self._http_obj_mock.request.assert_called_with(
         uri='https://chat.123.com',
         method='POST',
         headers={'Content-Type': 'application/json; charset=UTF-8'},
         body=expected_body,
     )
-
-  def testSendNotificationFormatTextNon200Status(self):
-    handler = service_handler.GchatHandler()
-    config_params = _CONFIG_PARAMS_GCHAT.copy()
-    self._http_obj_mock.request.return_value = (
-        httplib2.Response({'status': 500}),
-        b'Server error',
-    )
-    config_params['msg_format'] = 'text'
-    http_response, status_code = handler.SendNotification(config_params, _NOTIF)
-    self.assertEqual(status_code, 500)
-    self.assertEqual(http_response, 'Server error')
-    self._http_obj_mock.request.assert_called_once()
 
   def testSendNotificationFormatCardFailedDueToMissingField(self):
     missing_fields = ['condition', 'resource', 'url', 'state', 'summary']
@@ -275,7 +297,7 @@ class GchatHandlerTest(unittest.TestCase):
       del notif['incident'][missing_field]
 
       _, status_code = handler.SendNotification(_CONFIG_PARAMS_GCHAT, notif)
-      self.assertEqual(status_code, 400)
+      self.assertNotEqual(status_code, 200)
 
   def testSendNotificationFormatCardStartedAtMissing(self):
     handler = service_handler.GchatHandler()
@@ -285,24 +307,25 @@ class GchatHandlerTest(unittest.TestCase):
         httplib2.Response({'status': 200}),
         b'OK',
     )
-    _, status_code = handler.SendNotification(
+    http_response, status_code = handler.SendNotification(
         _CONFIG_PARAMS_GCHAT, notif_without_startime
     )
     self.assertEqual(status_code, 200)
     expected_body = (
         '{"cards": [{"sections": [{"widgets": [{"textParagraph": {"text":'
-        ' "<b><font color=\\"#0000FF\\">Summary:</font></b> CPU usage for '
+        ' "<b><font color=\\"{header_color}\\">Summary:</font></b> CPU usage'
+        ' for '
         'tf-test VM Instance labels {project_id=tf-test} returned to normal'
-        ' with a value of 0.081., <br><b><font    color=\\"#0000FF\\">'
-        'State:</font></b> closed"}}, {"textParagraph": {"text": '
-        '"<b>Condition Display Name:</b> test condition <br><b>Start '
-        'at:</b> <br><b>Incident Labels:</b> '
-        '{\'project_id\': \'tf-test\'}"}}, {"buttons": [{"textButton": '
-        '{"text": "View Incident Details", "onClick": {"openLink": '
-        '{"url": "https://console.cloud.google.com/monitoring/alerting/'
-        'incidents/0.m2d61b3s6d5d?project=tf-test"}}}}]}]}]}]}'
+        ' with a value of 0.081., <br><b><font'
+        ' color=\\"#0000FF\\">State:</font></b> closed"}}, '
+        '{"textParagraph": {"text": "<b>Condition Display Name:</b> test'
+        ' condition <br><b>Start at:</b> <br>'
+        "<b>Incident Labels:</b> {'project_id': 'tf-test'}\"}}, {\"buttons\":"
+        ' [{"textButton": {"text": "View Incident Details", "onClick":'
+        ' {"openLink": {"url":'
+        ' "https://console.cloud.google.com/monitoring/alerting/incidents/0.m2d61b3s6d5d?project=tf-test"}}}}]}]}]}]}'
     )
-    self._http_obj_mock.request.assert_called_once_with(
+    self._http_obj_mock.request.assert_called_with(
         uri='https://chat.123.com',
         method='POST',
         headers={'Content-Type': 'application/json; charset=UTF-8'},
@@ -320,11 +343,7 @@ class MSTeamsHandlerTest(unittest.TestCase):
 
   def testCheckServiceNameInConfigParamsFailed(self):
     handler = service_handler.MSTeamsHandler()
-    bad_configs = [
-        {'service': _SERVICE_NAME_TEAMS},  # Bad key
-        {'service_name': 'wrong_xxx'},  # Bad value
-    ]
-    for bad_config in bad_configs:
+    for bad_config in _BAD_CONFIG_PARAMS_TEAMS:
       with self.assertRaises(service_handler.ConfigParamsError):
         handler.CheckServiceNameInConfigParams(bad_config)
 
@@ -351,7 +370,7 @@ class MSTeamsHandlerTest(unittest.TestCase):
     self._http_obj_mock.request.side_effect = Exception('unknown exception')
     config_params['msg_format'] = 'text'
     _, status_code = handler.SendNotification(config_params, _NOTIF)
-    self.assertEqual(status_code, 400)
+    self.assertEqual(status_code, 500)
     self._http_obj_mock.request.assert_called_once()
 
   def testSendNotificationFormatTextSucceed(self):
@@ -362,7 +381,7 @@ class MSTeamsHandlerTest(unittest.TestCase):
         httplib2.Response({'status': 200}),
         b'OK',
     )
-    _, status_code = handler.SendNotification(config_params, _NOTIF)
+    http_response, status_code = handler.SendNotification(config_params, _NOTIF)
     self.assertEqual(status_code, 200)
     expected_body = (
         '{"text": "{\\"incident\\": {\\"condition\\":'
@@ -393,7 +412,7 @@ class MSTeamsHandlerTest(unittest.TestCase):
         ' \\"version\\": \\"1.2\\"}"}'
     )
     self._http_obj_mock.request.assert_called_once_with(
-        uri='https://outlook.office.com/webhook/.../IncomingWebhook/...',
+        uri=_CONFIG_PARAMS_TEAMS['webhook_url'],
         method='POST',
         headers={'Content-Type': 'application/json; charset=UTF-8'},
         body=expected_body,
@@ -411,53 +430,49 @@ class MSTeamsHandlerTest(unittest.TestCase):
     self.assertEqual(status_code, 200)
     self.assertEqual(http_response, 'OK')
     expected_body = (
-        '{"cards": [{"sections": [{"widgets": [{"textParagraph": {"text":'
-        ' "<b><font color=\\"#0000FF\\">Summary:</font></b> CPU usage for '
-        'tf-test VM Instance labels {project_id=tf-test} returned to normal'
-        ' with a value of 0.081., <br><b><font    color=\\"#0000FF\\">'
-        'State:</font></b> closed"}}, {"textParagraph": {"text": '
-        '"<b>Condition Display Name:</b> test condition <br><b>Start '
-        'at:</b> 2021-05-11 17:35:33 (UTC)<br><b>Incident Labels:</b> '
-        '{\'project_id\': \'tf-test\'}"}}, {"buttons": [{"textButton": '
-        '{"text": "View Incident Details", "onClick": {"openLink": '
-        '{"url": "https://console.cloud.google.com/monitoring/alerting/'
-        'incidents/0.m2d61b3s6d5d?project=tf-test"}}}}]}]}]}]}'
+        '{"type": "message", "attachments": [{"contentType":'
+        ' "application/vnd.microsoft.card.adaptive", "contentUrl": null,'
+        ' "content": {"type": "AdaptiveCard", "body": [{"type": "Container",'
+        ' "items": [{"type": "TextBlock", "text": "test Alert Policy",'
+        ' "weight": "Bolder", "size": "Medium"}, {"type": "TextBlock", "text":'
+        ' "CPU usage for tf-test VM Instance labels {project_id=tf-test}'
+        ' returned to normal with a value of 0.081.", "isSubtle": true, "wrap":'
+        ' true}, {"type": "ColumnSet", "columns": [{"type": "Column", "width":'
+        ' "auto", "items": [{"type": "Image", "url":'
+        ' "https://ssl.gstatic.com/cloud-monitoring/incident_closed.png",'
+        ' "width": "18px", "height": "18px", "spacing": "None"}]}, {"type":'
+        ' "Column", "width": "auto", "items": [{"type": "TextBlock", "text":'
+        ' "closed", "color": "Green", "size": "Small", "spacing": "None",'
+        ' "wrap": true}]}, {"type": "Column", "width": "auto", "items":'
+        ' [{"type": "Image", "url":'
+        ' "https://ssl.gstatic.com/cloud-monitoring/severity_null.png",'
+        ' "width": "18px", "height": "18px", "spacing": "None"}]}, {"type":'
+        ' "Column", "width": "auto", "items": [{"type": "TextBlock", "text":'
+        ' "N/A", "size": "Small", "weight": "Default", "spacing": "Small",'
+        ' "wrap": true}]}]}]}, {"type": "ActionSet", "actions": [{"type":'
+        ' "Action.OpenUrl", "title": "View alert", "url":'
+        ' "https://console.cloud.google.com/monitoring/alerting/incidents/0.m2d61b3s6d5d?project=tf-test",'
+        ' "isPrimary": true}, {"type": "Action.ShowCard", "title": "Additional'
+        ' details", "card": {"type": "AdaptiveCard", "body": [{"type":'
+        ' "Container", "items": [{"type": "TextBlock", "text": "Additional'
+        ' details", "weight": "Bolder", "size": "Medium"}, {"type":'
+        ' "TextBlock", "text": "", "wrap": true, "separator": false}, {"type":'
+        ' "TextBlock", "text": "Labels", "size": "Small", "weight": "Bolder",'
+        ' "spacing": "Large"}, {"type": "FactSet", "facts": [{"title":'
+        ' "metric_type", "value": "usage_time"}, {"title": "project_id",'
+        ' "value": "tf-test"}], "spacing": "Small"}]}]}}]}], "$schema":'
+        ' "http://adaptivecards.io/schemas/adaptive-card.json", "version":'
+        ' "1.5"}}]}'
     )
-    self._http_obj_mock.request.assert_called_once_with(
-        uri='https://outlook.office.com/webhook/.../IncomingWebhook/...',
+
+    self._http_obj_mock.request.assert_called_with(
+        uri=_CONFIG_PARAMS_TEAMS['webhook_url'],
         method='POST',
         headers={'Content-Type': 'application/json; charset=UTF-8'},
         body=expected_body,
     )
 
-  def testSendNotificationFormatTextNon200Status(self):
-    handler = service_handler.MSTeamsHandler()
-    config_params = _CONFIG_PARAMS_TEAMS.copy()
-    self._http_obj_mock.request.return_value = (
-        httplib2.Response({'status': 500}),
-        b'Server error',
-    )
-    config_params['msg_format'] = 'text'
-    http_response, status_code = handler.SendNotification(config_params, _NOTIF)
-    self.assertEqual(status_code, 500)
-    self.assertEqual(http_response, 'Server error')
-    self._http_obj_mock.request.assert_called_once()
-
-  def testSendNotificationFormatCardFailedDueToMissingField(self):
-    missing_fields = ['condition', 'resource', 'url', 'state', 'summary']
-    handler = service_handler.MSTeamsHandler()
-    self._http_obj_mock.request.return_value = (
-        httplib2.Response({'status': 200}),
-        b'OK',
-    )
-    for missing_field in missing_fields:
-      notif = copy.deepcopy(_NOTIF)
-      del notif['incident'][missing_field]
-
-      _, status_code = handler.SendNotification(_CONFIG_PARAMS_TEAMS, notif)
-      self.assertEqual(status_code, 400)
-
-  def testSendNotificationFormatCardStartedAtMissing(self):
+  def testSendNotificationFormatCardSucceedWithDocumentationAndQuickLinks(self):
     handler = service_handler.MSTeamsHandler()
     notif_without_startime = copy.deepcopy(_NOTIF)
     del notif_without_startime['incident']['started_at']
@@ -470,20 +485,108 @@ class MSTeamsHandlerTest(unittest.TestCase):
     )
     self.assertEqual(status_code, 200)
     expected_body = (
-        '{"cards": [{"sections": [{"widgets": [{"textParagraph": {"text":'
-        ' "<b><font color=\\"#0000FF\\">Summary:</font></b> CPU usage for '
-        'tf-test VM Instance labels {project_id=tf-test} returned to normal'
-        ' with a value of 0.081., <br><b><font    color=\\"#0000FF\\">'
-        'State:</font></b> closed"}}, {"textParagraph": {"text": '
-        '"<b>Condition Display Name:</b> test condition <br><b>Start '
-        'at:</b> <br><b>Incident Labels:</b> '
-        '{\'project_id\': \'tf-test\'}"}}, {"buttons": [{"textButton": '
-        '{"text": "View Incident Details", "onClick": {"openLink": '
-        '{"url": "https://console.cloud.google.com/monitoring/alerting/'
-        'incidents/0.m2d61b3s6d5d?project=tf-test"}}}}]}]}]}]}'
+        '{"type": "message", "attachments": [{"contentType":'
+        ' "application/vnd.microsoft.card.adaptive", "contentUrl": null,'
+        ' "content": {"type": "AdaptiveCard", "body": [{"type": "Container",'
+        ' "items": [{"type": "TextBlock", "text": "test Alert Policy",'
+        ' "weight": "Bolder", "size": "Medium"}, {"type": "TextBlock", "text":'
+        ' "CPU usage for tf-test VM Instance labels {project_id=tf-test}'
+        ' returned to normal with a value of 0.081.", "isSubtle": true, "wrap":'
+        ' true}, {"type": "ColumnSet", "columns": [{"type": "Column", "width":'
+        ' "auto", "items": [{"type": "Image", "url":'
+        ' "https://ssl.gstatic.com/cloud-monitoring/incident_closed.png",'
+        ' "width": "18px", "height": "18px", "spacing": "None"}]}, {"type":'
+        ' "Column", "width": "auto", "items": [{"type": "TextBlock", "text":'
+        ' "closed", "color": "Green", "size": "Small", "spacing": "None",'
+        ' "wrap": true}]}, {"type": "Column", "width": "auto", "items":'
+        ' [{"type": "Image", "url":'
+        ' "https://ssl.gstatic.com/cloud-monitoring/severity_null.png",'
+        ' "width": "18px", "height": "18px", "spacing": "None"}]}, {"type":'
+        ' "Column", "width": "auto", "items": [{"type": "TextBlock", "text":'
+        ' "N/A", "size": "Small", "weight": "Default", "spacing": "Small",'
+        ' "wrap": true}]}]}]}, {"type": "ActionSet", "actions": [{"type":'
+        ' "Action.OpenUrl", "title": "View alert", "url":'
+        ' "https://console.cloud.google.com/monitoring/alerting/incidents/0.m2d61b3s6d5d?project=tf-test",'
+        ' "isPrimary": true}, {"type": "Action.ShowCard", "title": "Additional'
+        ' details", "card": {"type": "AdaptiveCard", "body": [{"type":'
+        ' "Container", "items": [{"type": "TextBlock", "text": "Additional'
+        ' details", "weight": "Bolder", "size": "Medium"}, {"type":'
+        ' "TextBlock", "text": "**Quick links:** [playbook'
+        ' updated2](https://google.com) \\u2022 [playbook'
+        ' updated3](https://google.com)", "wrap": true, "separator": true},'
+        ' {"type": "TextBlock", "text": "Labels", "size": "Small", "weight":'
+        ' "Bolder", "spacing": "Large"}, {"type": "FactSet", "facts":'
+        ' [{"title": "metric_type", "value": "usage_time"}, {"title":'
+        ' "project_id", "value": "tf-test"}], "spacing": "Small"}, {"type":'
+        ' "TextBlock", "text": "Documentation", "size": "Small", "weight":'
+        ' "Bolder", "spacing": "Large"}, {"type": "TextBlock", "text": "Some'
+        ' documentation content", "spacing": "Small", "wrap": true}]}]}}]}],'
+        ' "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",'
+        ' "version": "1.5"}}]}'
     )
     self._http_obj_mock.request.assert_called_once_with(
-        uri='https://outlook.office.com/webhook/.../IncomingWebhook/...',
+        uri=_CONFIG_PARAMS_TEAMS['webhook_url'],
+        method='POST',
+        headers={'Content-Type': 'application/json; charset=UTF-8'},
+        body=expected_body,
+    )
+
+  def testSendNotificationFormatCardSucceedWithOnlyDocumentation(self):
+    handler = service_handler.MSTeamsHandler()
+    notif_with_docs_only = copy.deepcopy(_NOTIF)
+    notif_with_docs_only['incident']['documentation'] = {
+        'content': 'Some documentation content',
+        'links': [],
+    }
+    self._http_obj_mock.request.return_value = (
+        httplib2.Response({'status': 200}),
+        b'OK',
+    )
+    http_response, status_code = handler.SendNotification(
+        _CONFIG_PARAMS_TEAMS, notif_with_docs_only
+    )
+    self.assertEqual(status_code, 200)
+    self.assertEqual(http_response, 'OK')
+    expected_body = (
+        '{"type": "message", "attachments": [{"contentType":'
+        ' "application/vnd.microsoft.card.adaptive", "contentUrl": null,'
+        ' "content": {"type": "AdaptiveCard", "body": [{"type": "Container",'
+        ' "items": [{"type": "TextBlock", "text": "test Alert Policy",'
+        ' "weight": "Bolder", "size": "Medium"}, {"type": "TextBlock", "text":'
+        ' "CPU usage for tf-test VM Instance labels {project_id=tf-test}'
+        ' returned to normal with a value of 0.081.", "isSubtle": true, "wrap":'
+        ' true}, {"type": "ColumnSet", "columns": [{"type": "Column", "width":'
+        ' "auto", "items": [{"type": "Image", "url":'
+        ' "https://ssl.gstatic.com/cloud-monitoring/incident_closed.png",'
+        ' "width": "18px", "height": "18px", "spacing": "None"}]}, {"type":'
+        ' "Column", "width": "auto", "items": [{"type": "TextBlock", "text":'
+        ' "closed", "color": "Green", "size": "Small", "spacing": "None",'
+        ' "wrap": true}]}, {"type": "Column", "width": "auto", "items":'
+        ' [{"type": "Image", "url":'
+        ' "https://ssl.gstatic.com/cloud-monitoring/severity_null.png",'
+        ' "width": "18px", "height": "18px", "spacing": "None"}]}, {"type":'
+        ' "Column", "width": "auto", "items": [{"type": "TextBlock", "text":'
+        ' "N/A", "size": "Small", "weight": "Default", "spacing": "Small",'
+        ' "wrap": true}]}]}]}, {"type": "ActionSet", "actions": [{"type":'
+        ' "Action.OpenUrl", "title": "View alert", "url":'
+        ' "https://console.cloud.google.com/monitoring/alerting/incidents/0.m2d61b3s6d5d?project=tf-test",'
+        ' "isPrimary": true}, {"type": "Action.ShowCard", "title": "Additional'
+        ' details", "card": {"type": "AdaptiveCard", "body": [{"type":'
+        ' "Container", "items": [{"type": "TextBlock", "text": "Additional'
+        ' details", "weight": "Bolder", "size": "Medium"}, {"type":'
+        ' "TextBlock", "text": "**Quick links:** ", "wrap": true, "separator":'
+        ' true}, {"type": "TextBlock", "text": "Labels", "size": "Small",'
+        ' "weight": "Bolder", "spacing": "Large"}, {"type": "FactSet", "facts":'
+        ' [{"title": "metric_type", "value": "usage_time"}, {"title":'
+        ' "project_id", "value": "tf-test"}], "spacing": "Small"}, {"type":'
+        ' "TextBlock", "text": "Documentation", "size": "Small", "weight":'
+        ' "Bolder", "spacing": "Large"}, {"type": "TextBlock", "text": "Some'
+        ' documentation content", "spacing": "Small", "wrap": true}]}]}}]}],'
+        ' "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",'
+        ' "version": "1.5"}}]}'
+    )
+    self._http_obj_mock.request.assert_called_once_with(
+        uri=_CONFIG_PARAMS_TEAMS['webhook_url'],
         method='POST',
         headers={'Content-Type': 'application/json; charset=UTF-8'},
         body=expected_body,

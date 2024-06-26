@@ -357,7 +357,7 @@ class GchatHandler(HttpRequestBasedHandler):
       logging.info("Successfully sent the notification: %s", http_response)
     except BaseException as err:
       logging.error("Failed to send the notification: %s", err)
-      return str(err), 400
+      return str(err), 500
     return content, http_response.status
 
 
