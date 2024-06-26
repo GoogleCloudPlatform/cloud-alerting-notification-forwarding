@@ -15,8 +15,10 @@
 # Main TF module.
 
 locals {
-  cpu_pubsub_topic = "tf-topic-cpu-teams"
-  disk_pubsub_topic = "tf-topic-disk-teams"
+  cpu_pubsub_topic_teams = "tf-topic-cpu-teams"
+  cpu_pubsub_topic_gchat = "tf-topic-cpu-gchat"
+  disk_pubsub_topic_teams = "tf-topic-disk-teams"
+  disk_pubsub_topic_gchat = "tf-topic-disk-gchat"
 }
 
 terraform {
@@ -43,30 +45,58 @@ module "cloud_run" {
   cloud_run_invoker_service_account_email = "${module.pubsub_service.cloud_run_invoker_service_account_email}"
 }
 
-# Setup a CPU usage alerting policy using a Pubsub channel.
-module "cpu_alert_policy" {
-  source                  = "../../tf-modules/cpu_alert_policy"
+# Setup a CPU usage alerting policy using a Pubsub channel for gchat.
+module "cpu_alert_policy_gchat" {
+  source                  = "../../tf-modules/cpu_alert_policy_gchat"
 
-  topic                   = local.cpu_pubsub_topic
+  topic                   = local.cpu_pubsub_topic_gchat
   project_id              = "${var.project_id}"
   cloud_run_invoker_service_account_email = "${module.pubsub_service.cloud_run_invoker_service_account_email}"
 
   push_subscription = {
-      name              = "alert-push-subscription-cpu"
-      push_endpoint     = "${module.cloud_run.url}/${local.cpu_pubsub_topic}"
+      name              = "alert-push-subscription-cpu_gchat"
+      push_endpoint     = "${module.cloud_run.url}/${local.cpu_pubsub_topic_gchat}"
   }
 }
 
-# Setup a disk usage alerting policy using a Pubsub channel.
-module "disk_alert_policy" {
-  source                  = "../../tf-modules/disk_alert_policy"
+# Setup a CPU usage alerting policy using a Pubsub channel for teams.
+module "cpu_alert_policy_teams" {
+  source                  = "../../tf-modules/cpu_alert_policy_teams"
 
-  topic                   = local.disk_pubsub_topic
+  topic                   = local.cpu_pubsub_topic_teams
   project_id              = "${var.project_id}"
   cloud_run_invoker_service_account_email = "${module.pubsub_service.cloud_run_invoker_service_account_email}"
 
   push_subscription = {
-      name              = "alert-push-subscription-disk"
-      push_endpoint     = "${module.cloud_run.url}/${local.disk_pubsub_topic}"
+      name              = "alert-push-subscription-cpu_teams"
+      push_endpoint     = "${module.cloud_run.url}/${local.cpu_pubsub_topic_teams}"
+  }
+}
+
+# Setup a disk usage alerting policy using a Pubsub channel for gchat.
+module "disk_alert_policy_gchat" {
+  source                  = "../../tf-modules/disk_alert_policy_gchat"
+
+  topic                   = local.disk_pubsub_topic_gchat
+  project_id              = "${var.project_id}"
+  cloud_run_invoker_service_account_email = "${module.pubsub_service.cloud_run_invoker_service_account_email}"
+
+  push_subscription = {
+      name              = "alert-push-subscription-disk_gchat"
+      push_endpoint     = "${module.cloud_run.url}/${local.disk_pubsub_topic_gchat}"
+  }
+}
+
+# Setup a disk usage alerting policy using a Pubsub channel for teams.
+module "disk_alert_policy_teams" {
+  source                  = "../../tf-modules/disk_alert_policy_teams"
+
+  topic                   = local.disk_pubsub_topic_teams
+  project_id              = "${var.project_id}"
+  cloud_run_invoker_service_account_email = "${module.pubsub_service.cloud_run_invoker_service_account_email}"
+
+  push_subscription = {
+      name              = "alert-push-subscription-disk_teams"
+      push_endpoint     = "${module.cloud_run.url}/${local.disk_pubsub_topic_teams}"
   }
 }
