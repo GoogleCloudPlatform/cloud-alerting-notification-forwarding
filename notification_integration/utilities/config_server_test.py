@@ -13,7 +13,7 @@
 # limitations under the License.
 """Unit tests for config_server.py."""
 import json
-import unittest
+from unittest.mock import Mock
 from google.cloud import storage
 from utilities import config_server
 
@@ -45,7 +45,7 @@ class InMemoryConfigServerTest(unittest.TestCase):
         {'123': {123: 456}},  # Value is not a Dict[Text, Any]
     ]
     for config_map in invalid_config_maps:
-      with self.assertRaises(config_server.InvalidConfigData):
+      with self.assertRaises(config_server.InvalidConfigDataError):
         config_server.InMemoryConfigServer(config_map)
 
   def testGetConfigInvaidConfigId(self):
@@ -75,28 +75,24 @@ class GcsConfigServerTest(unittest.TestCase):
   def setUp(self):
     # Call to the parent class's setUp method
     super().setUp()
-
     # To mock the GCS blob returned by bucket.get_blob.
-    self._blob_mock = unittest.Mock()
+    self._blob_mock = Mock()
 
     # To mock the GCS bucket returned by storage_client.get_bucket.
-    self._bucket_mock = unittest.Mock()
-    self._bucket_mock.get_blob = unittest.Mock(return_value=self._blob_mock)
+    self._bucket_mock = Mock()
+    self._bucket_mock.get_blob = Mock(return_value=self._blob_mock)
 
     # To mock storage_client.
-    self._storage_client_mock = unittest.Mock()
-    self._storage_client_mock.get_bucket = unittest.Mock(
-        return_value=self._bucket_mock
-    )
+    self._storage_client_mock = Mock()
+    self._storage_client_mock.get_bucket = Mock(return_value=self._bucket_mock)
 
-    storage.Client = unittest.Mock(return_value=self._storage_client_mock)
+    storage.Client = Mock(return_value=self._storage_client_mock)
 
     # Dummy GCS bucket name and GCS object name used in the tests.
     self._test_bucket = 'test_bucket'
     self._test_filename = 'test_file'
 
-    # Create a test server and reset all the call
-    # attributes on the mock objects.
+    # Create a test server and reset all the call attributes on the mock objects.
     self._blob_mock.download_as_string.return_value = _VALID_CONFIG_MAP_JSON_STR
     self._test_server = config_server.GcsConfigServer(
         self._test_bucket, self._test_filename
@@ -153,7 +149,7 @@ class GcsConfigServerTest(unittest.TestCase):
     ]
     for json_str in invalid_blob_json_strs:
       self._blob_mock.download_as_string.return_value = json_str
-      with self.assertRaises(config_server.InvalidConfigData):
+      with self.assertRaises(config_server.InvalidConfigDataError):
         config_server.GcsConfigServer(self._test_bucket, self._test_filename)
 
   def testGetConfigInvaidConfigId(self):
