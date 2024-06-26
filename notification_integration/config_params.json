@@ -12,11 +12,11 @@
   "tf-topic-cpu-teams": {
     "service_name": "microsoft_teams",
     "msg_format": "text",
-    "webhook_url": "https://ossalerting.webhook.office.com/webhookb2/203ae8c6-65e9-4988-9249-d0ab0d1d0670@a5050f19-682c-4be4-b9a6-f1d556ec71d2/IncomingWebhook/c42c54ec0f63425281b9a510ffc29689/01101e53-5257-4079-887c-eda5cbdcf638"
+    "webhook_url": "https://ossalertinggoogle.webhook.office.com/webhookb2/137410cd-d347-4172-9d68-3c38cb004499@dff91d55-0bcf-4139-a487-1bf8a6251d6a/IncomingWebhook/22981448a0564b57b4d74e0f118f299e/c2ae060b-1b11-422e-b342-b59818a8ce7b"
   },
   "tf-topic-disk-teams": {
     "service_name": "microsoft_teams",
     "msg_format": "card",
-    "webhook_url": "https://ossalerting.webhook.office.com/webhookb2/203ae8c6-65e9-4988-9249-d0ab0d1d0670@a5050f19-682c-4be4-b9a6-f1d556ec71d2/IncomingWebhook/3c959ffad0b44fb9ba0f86f0d4dbe1c3/01101e53-5257-4079-887c-eda5cbdcf638"
+    "webhook_url": "https://ossalertinggoogle.webhook.office.com/webhookb2/137410cd-d347-4172-9d68-3c38cb004499@dff91d55-0bcf-4139-a487-1bf8a6251d6a/IncomingWebhook/6a8ab6f7f297468e91b7aef46a0742e1/c2ae060b-1b11-422e-b342-b59818a8ce7b"
   }
 }
