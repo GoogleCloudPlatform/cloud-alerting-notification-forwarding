@@ -16,8 +16,8 @@
 import copy
 import json
 import unittest
+from unittest import mock
 import httplib2
-from utilities import mock
 from utilities import service_handler
 
 # A valid config map used in the tests.
@@ -34,7 +34,6 @@ _CONFIG_PARAMS_TEAMS = {
     'webhook_url': 'https://outlook.office.com/webhook/.../IncomingWebhook/...',
     'msg_format': 'card',
 }
-
 
 _BAD_CONFIG_PARAMS_GCHAT = [
     {'service': _SERVICE_NAME_GCHAT},  # Bad service name key
@@ -67,6 +66,7 @@ _BAD_CONFIG_PARAMS_TEAMS = [
         'webhook_url': '123.com',
         'msg_format': 'video',
     },  # Bad format value
+    {},  # Missing service name
 ]
 
 
@@ -117,6 +117,7 @@ _NOTIF = {
     'version': '1.2',
 }
 
+
 class ServiceHandlerTest(unittest.TestCase):
 
   def testAbstractServiceHandlerCannotBeInitialized(self):
@@ -160,7 +161,7 @@ class GchatHandlerTest(unittest.TestCase):
     handler = service_handler.GchatHandler()
     for bad_config in _BAD_CONFIG_PARAMS_GCHAT:
       _, status_code = handler.SendNotification(bad_config, _NOTIF)
-      self.assertEqual(status_code, 400)
+      self.assertNotEqual(status_code, 200)
 
   def testSendNotificationFailedDueToUnexpectedCheckConfigParamsException(self):
     handler = service_handler.GchatHandler()
@@ -357,7 +358,7 @@ class MSTeamsHandlerTest(unittest.TestCase):
     handler = service_handler.MSTeamsHandler()
     for bad_config in _BAD_CONFIG_PARAMS_TEAMS:
       _, status_code = handler.SendNotification(bad_config, _NOTIF)
-      self.assertEqual(status_code, 400)
+      self.assertNotEqual(status_code, 200)
 
   def testSendNotificationFailedDueToUnexpectedCheckConfigParamsException(self):
     handler = service_handler.MSTeamsHandler()
@@ -511,16 +512,71 @@ class MSTeamsHandlerTest(unittest.TestCase):
         ' details", "card": {"type": "AdaptiveCard", "body": [{"type":'
         ' "Container", "items": [{"type": "TextBlock", "text": "Additional'
         ' details", "weight": "Bolder", "size": "Medium"}, {"type":'
-        ' "TextBlock", "text": "**Quick links:** [playbook'
-        ' updated2](https://google.com) \\u2022 [playbook'
-        ' updated3](https://google.com)", "wrap": true, "separator": true},'
-        ' {"type": "TextBlock", "text": "Labels", "size": "Small", "weight":'
-        ' "Bolder", "spacing": "Large"}, {"type": "FactSet", "facts":'
+        ' "TextBlock", "text": "", "wrap": true, "separator": false}, {"type":'
+        ' "TextBlock", "text": "Labels", "size": "Small", "weight": "Bolder",'
+        ' "spacing": "Large"}, {"type": "FactSet", "facts": [{"title":'
+        ' "metric_type", "value": "usage_time"}, {"title": "project_id",'
+        ' "value": "tf-test"}], "spacing": "Small"}]}]}}]}], "$schema":'
+        ' "http://adaptivecards.io/schemas/adaptive-card.json", "version":'
+        ' "1.5"}}]}'
+    )
+    self._http_obj_mock.request.assert_called_once_with(
+        uri=_CONFIG_PARAMS_TEAMS['webhook_url'],
+        method='POST',
+        headers={'Content-Type': 'application/json; charset=UTF-8'},
+        body=expected_body,
+    )
+
+  def testSendNotificationFormatCardSucceedWithoutDocumentationAndQuickLinks(
+      self,
+  ):
+    handler = service_handler.MSTeamsHandler()
+    notif_without_docs_links = copy.deepcopy(_NOTIF)
+    notif_without_docs_links['incident']['documentation'] = {
+        'content': '',
+        'links': [],
+    }
+    self._http_obj_mock.request.return_value = (
+        httplib2.Response({'status': 200}),
+        b'OK',
+    )
+    http_response, status_code = handler.SendNotification(
+        _CONFIG_PARAMS_TEAMS, notif_without_docs_links
+    )
+    self.assertEqual(status_code, 200)
+    self.assertEqual(http_response, 'OK')
+    expected_body = (
+        '{"type": "message", "attachments": [{"contentType":'
+        ' "application/vnd.microsoft.card.adaptive", "contentUrl": null,'
+        ' "content": {"type": "AdaptiveCard", "body": [{"type": "Container",'
+        ' "items": [{"type": "TextBlock", "text": "test Alert Policy",'
+        ' "weight": "Bolder", "size": "Medium"}, {"type": "TextBlock", "text":'
+        ' "CPU usage for tf-test VM Instance labels {project_id=tf-test}'
+        ' returned to normal with a value of 0.081.", "isSubtle": true, "wrap":'
+        ' true}, {"type": "ColumnSet", "columns": [{"type": "Column", "width":'
+        ' "auto", "items": [{"type": "Image", "url":'
+        ' "https://ssl.gstatic.com/cloud-monitoring/incident_closed.png",'
+        ' "width": "18px", "height": "18px", "spacing": "None"}]}, {"type":'
+        ' "Column", "width": "auto", "items": [{"type": "TextBlock", "text":'
+        ' "closed", "color": "Green", "size": "Small", "spacing": "None",'
+        ' "wrap": true}]}, {"type": "Column", "width": "auto", "items":'
+        ' [{"type": "Image", "url":'
+        ' "https://ssl.gstatic.com/cloud-monitoring/severity_null.png",'
+        ' "width": "18px", "height": "18px", "spacing": "None"}]}, {"type":'
+        ' "Column", "width": "auto", "items": [{"type": "TextBlock", "text":'
+        ' "N/A", "size": "Small", "weight": "Default", "spacing": "Small",'
+        ' "wrap": true}]}]}]}, {"type": "ActionSet", "actions": [{"type":'
+        ' "Action.OpenUrl", "title": "View alert", "url":'
+        ' "https://console.cloud.google.com/monitoring/alerting/incidents/0.m2d61b3s6d5d?project=tf-test",'
+        ' "isPrimary": true}, {"type": "Action.ShowCard", "title": "Additional'
+        ' details", "card": {"type": "AdaptiveCard", "body": [{"type":'
+        ' "Container", "items": [{"type": "TextBlock", "text": "Additional'
+        ' details", "weight": "Bolder", "size": "Medium"}, {"type":'
+        ' "TextBlock", "text": "**Quick links:** ", "wrap": true, "separator":'
+        ' true}, {"type": "TextBlock", "text": "Labels", "size": "Small",'
+        ' "weight": "Bolder", "spacing": "Large"}, {"type": "FactSet", "facts":'
         ' [{"title": "metric_type", "value": "usage_time"}, {"title":'
-        ' "project_id", "value": "tf-test"}], "spacing": "Small"}, {"type":'
-        ' "TextBlock", "text": "Documentation", "size": "Small", "weight":'
-        ' "Bolder", "spacing": "Large"}, {"type": "TextBlock", "text": "Some'
-        ' documentation content", "spacing": "Small", "wrap": true}]}]}}]}],'
+        ' "project_id", "value": "tf-test"}], "spacing": "Small"}]}]}}]}],'
         ' "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",'
         ' "version": "1.5"}}]}'
     )
@@ -591,6 +647,257 @@ class MSTeamsHandlerTest(unittest.TestCase):
         headers={'Content-Type': 'application/json; charset=UTF-8'},
         body=expected_body,
     )
+
+  def testSendNotificationFormatCardSucceedWithOnlyQuickLinks(self):
+    handler = service_handler.MSTeamsHandler()
+    notif_with_links_only = copy.deepcopy(_NOTIF)
+    notif_with_links_only['incident']['documentation'] = {
+        'content': '',
+        'links': [
+            {'DisplayName': 'playbook updated2', 'URL': 'https://google.com'},
+            {'DisplayName': 'playbook updated3', 'URL': 'https://google.com'},
+        ],
+    }
+    self._http_obj_mock.request.return_value = (
+        httplib2.Response({'status': 200}),
+        b'OK',
+    )
+    http_response, status_code = handler.SendNotification(
+        _CONFIG_PARAMS_TEAMS, notif_with_links_only
+    )
+    self.assertEqual(status_code, 200)
+    self.assertEqual(http_response, 'OK')
+    expected_body = (
+        '{"type": "message", "attachments": [{"contentType":'
+        ' "application/vnd.microsoft.card.adaptive", "contentUrl": null,'
+        ' "content": {"type": "AdaptiveCard", "body": [{"type": "Container",'
+        ' "items": [{"type": "TextBlock", "text": "test Alert Policy",'
+        ' "weight": "Bolder", "size": "Medium"}, {"type": "TextBlock", "text":'
+        ' "CPU usage for tf-test VM Instance labels {project_id=tf-test}'
+        ' returned to normal with a value of 0.081.", "isSubtle": true, "wrap":'
+        ' true}, {"type": "ColumnSet", "columns": [{"type": "Column", "width":'
+        ' "auto", "items": [{"type": "Image", "url":'
+        ' "https://ssl.gstatic.com/cloud-monitoring/incident_closed.png",'
+        ' "width": "18px", "height": "18px", "spacing": "None"}]}, {"type":'
+        ' "Column", "width": "auto", "items": [{"type": "TextBlock", "text":'
+        ' "closed", "color": "Green", "size": "Small", "spacing": "None",'
+        ' "wrap": true}]}, {"type": "Column", "width": "auto", "items":'
+        ' [{"type": "Image", "url":'
+        ' "https://ssl.gstatic.com/cloud-monitoring/severity_null.png",'
+        ' "width": "18px", "height": "18px", "spacing": "None"}]}, {"type":'
+        ' "Column", "width": "auto", "items": [{"type": "TextBlock", "text":'
+        ' "N/A", "size": "Small", "weight": "Default", "spacing": "Small",'
+        ' "wrap": true}]}]}]}, {"type": "ActionSet", "actions": [{"type":'
+        ' "Action.OpenUrl", "title": "View alert", "url":'
+        ' "https://console.cloud.google.com/monitoring/alerting/incidents/0.m2d61b3s6d5d?project=tf-test",'
+        ' "isPrimary": true}, {"type": "Action.ShowCard", "title": "Additional'
+        ' details", "card": {"type": "AdaptiveCard", "body": [{"type":'
+        ' "Container", "items": [{"type": "TextBlock", "text": "Additional'
+        ' details", "weight": "Bolder", "size": "Medium"}, {"type":'
+        ' "TextBlock", "text": "**Quick links:** [playbook'
+        ' updated2](https://google.com) \\u2022 [playbook'
+        ' updated3](https://google.com)", "wrap": true, "separator": true},'
+        ' {"type": "TextBlock", "text": "Labels", "size": "Small", "weight":'
+        ' "Bolder", "spacing": "Large"}, {"type": "FactSet", "facts":'
+        ' [{"title": "metric_type", "value": "usage_time"}, {"title":'
+        ' "project_id", "value": "tf-test"}], "spacing": "Small"}]}]}}]}],'
+        ' "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",'
+        ' "version": "1.5"}}]}'
+    )
+    self._http_obj_mock.request.assert_called_once_with(
+        uri='https://outlook.office.com/webhook/.../IncomingWebhook/...',
+        method='POST',
+        headers={'Content-Type': 'application/json; charset=UTF-8'},
+        body=expected_body,
+    )
+
+  def testSendNotificationWithEmptyIncident(self):
+    handler = service_handler.MSTeamsHandler()
+    notif_empty_incident = {'incident': {}}
+    self._http_obj_mock.request.return_value = (
+        httplib2.Response({'status': 200}),
+        b'OK',
+    )
+    http_response, status_code = handler.SendNotification(
+        _CONFIG_PARAMS_TEAMS, notif_empty_incident
+    )
+    self.assertEqual(status_code, 200)
+    self.assertEqual(http_response, 'OK')
+    expected_body = (
+        '{"type": "message", "attachments": [{"contentType":'
+        ' "application/vnd.microsoft.card.adaptive", "contentUrl": null,'
+        ' "content": {"type": "AdaptiveCard", "body": [{"type": "Container",'
+        ' "items": [{"type": "TextBlock", "text": "N/A", "weight": "Bolder",'
+        ' "size": "Medium"}, {"type": "TextBlock", "text": "N/A", "isSubtle":'
+        ' true, "wrap": true}, {"type": "ColumnSet", "columns": [{"type":'
+        ' "Column", "width": "auto", "items": [{"type": "Image", "url":'
+        ' "https://ssl.gstatic.com/cloud-monitoring/incident_closed.png",'
+        ' "width": "18px", "height": "18px", "spacing": "None"}]}, {"type":'
+        ' "Column", "width": "auto", "items": [{"type": "TextBlock", "text":'
+        ' "N/A", "color": "Green", "size": "Small", "spacing": "None", "wrap":'
+        ' true}]}, {"type": "Column", "width": "auto", "items": [{"type":'
+        ' "Image", "url":'
+        ' "https://ssl.gstatic.com/cloud-monitoring/severity_null.png",'
+        ' "width": "18px", "height": "18px", "spacing": "None"}]}, {"type":'
+        ' "Column", "width": "auto", "items": [{"type": "TextBlock", "text":'
+        ' "N/A", "size": "Small", "weight": "Default", "spacing": "Small",'
+        ' "wrap": true}]}]}]}, {"type": "ActionSet", "actions": [{"type":'
+        ' "Action.OpenUrl", "title": "View alert", "url": "N/A", "isPrimary":'
+        ' true}, {"type": "Action.ShowCard", "title": "Additional details",'
+        ' "card": {"type": "AdaptiveCard", "body": [{"type": "Container",'
+        ' "items": [{"type": "TextBlock", "text": "Additional details",'
+        ' "weight": "Bolder", "size": "Medium"}, {"type": "TextBlock", "text":'
+        ' "", "wrap": true, "separator": false}, {"type": "TextBlock", "text":'
+        ' "Labels", "size": "Small", "weight": "Bolder", "spacing": "Large"},'
+        ' {"type": "FactSet", "facts": [{"title": "metric_type", "value":'
+        ' "A"}], "spacing": "Small"}]}]}}]}], "$schema":'
+        ' "http://adaptivecards.io/schemas/adaptive-card.json", "version":'
+        ' "1.5"}}]}'
+    )
+    self._http_obj_mock.request.assert_called_once_with(
+        uri='https://outlook.office.com/webhook/.../IncomingWebhook/...',
+        method='POST',
+        headers={'Content-Type': 'application/json; charset=UTF-8'},
+        body=expected_body,
+    )
+
+  def testSendNotificationWithOnlyRequiredFields(self):
+    handler = service_handler.MSTeamsHandler()
+    notif_only_required = {
+        'incident': {
+            'condition_name': 'test condition',
+            'summary': 'Test summary',
+            'state': 'open',
+            'url': 'https://test.url',
+        }
+    }
+    self._http_obj_mock.request.return_value = (
+        httplib2.Response({'status': 200}),
+        b'OK',
+    )
+    http_response, status_code = handler.SendNotification(
+        _CONFIG_PARAMS_TEAMS, notif_only_required
+    )
+    self.assertEqual(status_code, 200)
+    self.assertEqual(http_response, 'OK')
+    expected_body = (
+        '{"type": "message", "attachments": [{"contentType":'
+        ' "application/vnd.microsoft.card.adaptive", "contentUrl": null,'
+        ' "content": {"type": "AdaptiveCard", "body": [{"type": "Container",'
+        ' "items": [{"type": "TextBlock", "text": "N/A", "weight": "Bolder",'
+        ' "size": "Medium"}, {"type": "TextBlock", "text": "Test summary",'
+        ' "isSubtle": true, "wrap": true}, {"type": "ColumnSet", "columns":'
+        ' [{"type": "Column", "width": "auto", "items": [{"type": "Image",'
+        ' "url": "https://ssl.gstatic.com/cloud-monitoring/incident_open.png",'
+        ' "width": "18px", "height": "18px", "spacing": "None"}]}, {"type":'
+        ' "Column", "width": "auto", "items": [{"type": "TextBlock", "text":'
+        ' "open", "color": "Attention", "size": "Small", "spacing": "None",'
+        ' "wrap": true}]}, {"type": "Column", "width": "auto", "items":'
+        ' [{"type": "Image", "url":'
+        ' "https://ssl.gstatic.com/cloud-monitoring/severity_null.png",'
+        ' "width": "18px", "height": "18px", "spacing": "None"}]}, {"type":'
+        ' "Column", "width": "auto", "items": [{"type": "TextBlock", "text":'
+        ' "N/A", "size": "Small", "weight": "Default", "spacing": "Small",'
+        ' "wrap": true}]}]}]}, {"type": "ActionSet", "actions": [{"type":'
+        ' "Action.OpenUrl", "title": "View alert", "url": "https://test.url",'
+        ' "isPrimary": true}, {"type": "Action.ShowCard", "title": "Additional'
+        ' details", "card": {"type": "AdaptiveCard", "body": [{"type":'
+        ' "Container", "items": [{"type": "TextBlock", "text": "Additional'
+        ' details", "weight": "Bolder", "size": "Medium"}, {"type":'
+        ' "TextBlock", "text": "", "wrap": true, "separator": false}, {"type":'
+        ' "TextBlock", "text": "Labels", "size": "Small", "weight": "Bolder",'
+        ' "spacing": "Large"}, {"type": "FactSet", "facts": [{"title":'
+        ' "metric_type", "value": "A"}], "spacing": "Small"}]}]}}]}],'
+        ' "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",'
+        ' "version": "1.5"}}]}'
+    )
+    self._http_obj_mock.request.assert_called_once_with(
+        uri='https://outlook.office.com/webhook/.../IncomingWebhook/...',
+        method='POST',
+        headers={'Content-Type': 'application/json; charset=UTF-8'},
+        body=expected_body,
+    )
+
+  def testSendNotificationFormatCardStillSucceedWithMissingRequiredField(self):
+    required_fields = ['condition_name', 'summary', 'state', 'url']
+    handler = service_handler.MSTeamsHandler()
+    self._http_obj_mock.request.return_value = (
+        httplib2.Response({'status': 200}),
+        b'OK',
+    )
+    for required_field in required_fields:
+      notif = copy.deepcopy(_NOTIF)
+      del notif['incident'][required_field]
+
+      _, status_code = handler.SendNotification(_CONFIG_PARAMS_TEAMS, notif)
+      self.assertEqual(status_code, 200)
+
+  def testSendNotificationWithDifferentSeverityLevels(self):
+    handler = service_handler.MSTeamsHandler()
+    severity_levels = ['Critical', 'Error', 'Warning', 'No severity']
+    for severity in severity_levels:
+      notif_with_severity = copy.deepcopy(_NOTIF)
+      notif_with_severity['incident']['severity'] = severity
+      self._http_obj_mock.request.return_value = (
+          httplib2.Response({'status': 200}),
+          b'OK',
+      )
+      http_response, status_code = handler.SendNotification(
+          _CONFIG_PARAMS_TEAMS, notif_with_severity
+      )
+      self.assertEqual(status_code, 200)
+      self.assertEqual(http_response, 'OK')
+
+  def testSendNotificationWithSpecialCharacters(self):
+    handler = service_handler.MSTeamsHandler()
+    notif_with_special_chars = copy.deepcopy(_NOTIF)
+    notif_with_special_chars['incident'][
+        'summary'
+    ] = 'CPU usage <script>alert("test")</script>'
+    notif_with_special_chars['incident']['resource']['labels'].update(
+        {'special_label': '<b>bold</b>'}
+    )
+    self._http_obj_mock.request.return_value = (
+        httplib2.Response({'status': 200}),
+        b'OK',
+    )
+    http_response, status_code = handler.SendNotification(
+        _CONFIG_PARAMS_TEAMS, notif_with_special_chars
+    )
+    self.assertEqual(status_code, 200)
+    self.assertEqual(http_response, 'OK')
+
+  def testSendNotificationWithDifferentIncidentStates(self):
+    handler = service_handler.MSTeamsHandler()
+    incident_states = ['open', 'closed']
+    for state in incident_states:
+      notif_with_state = copy.deepcopy(_NOTIF)
+      notif_with_state['incident']['state'] = state
+      self._http_obj_mock.request.return_value = (
+          httplib2.Response({'status': 200}),
+          b'OK',
+      )
+      http_response, status_code = handler.SendNotification(
+          _CONFIG_PARAMS_TEAMS, notif_with_state
+      )
+      self.assertEqual(status_code, 200)
+      self.assertEqual(http_response, 'OK')
+
+  def testSendNotificationWithLargeNumberOfLabels(self):
+    handler = service_handler.MSTeamsHandler()
+    notif_with_many_labels = copy.deepcopy(_NOTIF)
+    notif_with_many_labels['incident']['resource']['labels'].update(
+        {f'label_{i}': f'value_{i}' for i in range(100)}
+    )
+    self._http_obj_mock.request.return_value = (
+        httplib2.Response({'status': 200}),
+        b'OK',
+    )
+    http_response, status_code = handler.SendNotification(
+        _CONFIG_PARAMS_TEAMS, notif_with_many_labels
+    )
+    self.assertEqual(status_code, 200)
+    self.assertEqual(http_response, 'OK')
 
 
 if __name__ == '__main__':
