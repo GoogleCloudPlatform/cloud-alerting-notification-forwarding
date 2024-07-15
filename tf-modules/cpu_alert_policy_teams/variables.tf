@@ -22,6 +22,17 @@ variable "topic" {
   description = "The Cloud PubSub topic."
 }
 
+variable "link_display_name" {
+  type        = string
+  description = "The display name for the quick link."
+}
+
+variable "link_url" {
+  type        = string
+  description = "The URL for the quick link."
+}
+
+
 # For Pubsub push subscription, see https://cloud.google.com/pubsub/docs/push.
 variable "push_subscription" {
     type = object({

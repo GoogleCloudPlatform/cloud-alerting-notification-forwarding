@@ -83,7 +83,7 @@ steps:
       fi
 
 - id: 'tf init'
-  name: 'hashicorp/terraform:1.8.4'
+  name: 'hashicorp/terraform:1.9.1'
   entrypoint: 'sh'
   args:
   - '-c'
@@ -98,7 +98,7 @@ steps:
   timeout: 300s # 5 minutes
 
 - id: 'tf refresh'
-  name: 'hashicorp/terraform:1.8.4'
+  name: 'hashicorp/terraform:1.9.1'
   entrypoint: 'sh'
   args:
   - '-c'
@@ -112,7 +112,7 @@ steps:
   timeout: 300s # 5 minutes
 
 - id: 'tf plan'
-  name: 'hashicorp/terraform:1.8.4'
+  name: 'hashicorp/terraform:1.9.1'
   entrypoint: 'sh'
   args:
   - '-c'
@@ -122,7 +122,7 @@ steps:
   timeout: 300s # 5 minutes
 
 - id: 'tf apply'
-  name: 'hashicorp/terraform:1.8.4'
+  name: 'hashicorp/terraform:1.9.1'
   entrypoint: 'sh'
   args:
   - '-c'

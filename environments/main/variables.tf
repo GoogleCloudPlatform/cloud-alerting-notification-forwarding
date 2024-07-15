@@ -16,3 +16,13 @@ variable "project_id" {
   type        = string
   description = "The project ID."
 }
+
+variable "link_display_name" {
+  type        = string
+  description = "The display name for the quick link."
+}
+
+variable "link_url" {
+  type        = string
+  description = "The URL for the quick link."
+}
