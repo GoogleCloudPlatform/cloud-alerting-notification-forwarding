@@ -61,16 +61,19 @@ module "cpu_alert_policy_gchat" {
 
 # Setup a CPU usage alerting policy using a Pubsub channel for teams.
 module "cpu_alert_policy_teams" {
-  source                  = "../../tf-modules/cpu_alert_policy_teams"
+  source = "../../tf-modules/cpu_alert_policy_teams"
 
-  topic                   = local.cpu_pubsub_topic_teams
-  project_id              = "${var.project_id}"
-  cloud_run_invoker_service_account_email = "${module.pubsub_service.cloud_run_invoker_service_account_email}"
+  topic = local.cpu_pubsub_topic_teams
+  project_id = var.project_id
+  cloud_run_invoker_service_account_email = module.pubsub_service.cloud_run_invoker_service_account_email
 
   push_subscription = {
-      name              = "alert-push-subscription-cpu_teams"
-      push_endpoint     = "${module.cloud_run.url}/${local.cpu_pubsub_topic_teams}"
+    name          = "alert-push-subscription-cpu_teams"
+    push_endpoint = "${module.cloud_run.url}/${local.cpu_pubsub_topic_teams}"
   }
+
+  link_display_name = var.link_display_name
+  link_url          = var.link_url
 }
 
 # Setup a disk usage alerting policy using a Pubsub channel for gchat.
@@ -99,4 +102,6 @@ module "disk_alert_policy_teams" {
       name              = "alert-push-subscription-disk_teams"
       push_endpoint     = "${module.cloud_run.url}/${local.disk_pubsub_topic_teams}"
   }
+  link_display_name = var.link_display_name
+  link_url          = var.link_url
 }

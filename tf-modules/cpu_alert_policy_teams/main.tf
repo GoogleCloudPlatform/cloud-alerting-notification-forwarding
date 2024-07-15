@@ -28,22 +28,23 @@ module "pubsub_channel" {
 # Create a sample alert policy with the Cloud Pubsub notification channel.
 # https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/monitoring_alert_policy
 resource "google_monitoring_alert_policy" "alert_policy" {
+  provider                   = google-beta
   display_name = "Sample Alert Policy: ${var.topic}"
-  project = var.project_id
+  project      = var.project_id
   combiner     = "OR"
   conditions {
     display_name = "test condition"
     condition_threshold {
-      filter     = "metric.type=\"compute.googleapis.com/instance/cpu/usage_time\" AND resource.type=\"gce_instance\""
-      duration   = "60s"
-      comparison = "COMPARISON_GT"
-      threshold_value = 0
+      filter           = "metric.type=\"compute.googleapis.com/instance/cpu/usage_time\" AND resource.type=\"gce_instance\""
+      duration         = "60s"
+      comparison       = "COMPARISON_GT"
+      threshold_value  = 0
       trigger {
         count = 1
       }
       aggregations {
-        alignment_period   = "60s"
-        per_series_aligner = "ALIGN_SUM"
+        alignment_period     = "60s"
+        per_series_aligner   = "ALIGN_SUM"
         cross_series_reducer = "REDUCE_SUM"
       }
     }
@@ -51,5 +52,17 @@ resource "google_monitoring_alert_policy" "alert_policy" {
   user_labels = {
     severity = "p1"
   }
-  notification_channels =[module.pubsub_channel.notif_channel]
+  notification_channels = [module.pubsub_channel.notif_channel]
+  documentation {
+    content = "This is a sample alert policy."
+    mime_type = "text/markdown"
+    links {
+        display_name = var.link_display_name
+        url          = var.link_url
+      }
+    links {
+      display_name = "Additional LONG LONG LONG LONG Link"
+      url          = "https://www.google.com"
+    }
+  }
 }

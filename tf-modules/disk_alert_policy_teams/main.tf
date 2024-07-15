@@ -28,6 +28,7 @@ module "pubsub_channel" {
 # Creates an alert policy with a Cloud Pubsub notification channel
 # https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/monitoring_alert_policy
 resource "google_monitoring_alert_policy" "alert_policy" {
+  provider                   = google-beta
   display_name = "Sample Alert Policy: ${var.topic}"
   project = var.project_id
   combiner     = "OR"
@@ -52,4 +53,12 @@ resource "google_monitoring_alert_policy" "alert_policy" {
     severity = "p0"
   }
   notification_channels =[module.pubsub_channel.notif_channel]
+  documentation {
+    content = "This is a sample alert policy."
+    mime_type = "text/markdown"
+    links {
+        display_name = var.link_display_name
+        url          = var.link_url
+      }
+  }
 }

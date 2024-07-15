@@ -14,3 +14,5 @@
 
 # Default variable values.
 project_id="PROJECT_ID"
+link_display_name="Playbook"
+link_url="https://cloud.google.com/chronicle/docs/soar/respond/working-with-playbooks/understanding-playbook-monitoring"
