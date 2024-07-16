@@ -4,9 +4,11 @@
 
 This repository provides examples of how a Google Cloud user can seamlessly integrate **[alerting notifications](https://cloud.google.com/monitoring/alerts#how_does_alerting_work)** with various third-party platforms. While this approach isn't officially supported as one of Google's **[notification channels](https://cloud.google.com/monitoring/support/notification-options)**, it enables sending notifications to any public or private endpoint using Webhooks and Cloud Pub/Sub.
 
-Notifications from Cloud Alerting can be sent to any third-party integration, including platforms like OpsGenie, ServiceNow, Microsoft Teams, private tools, and more. Two examples are shared below to illustrate the versatility of this method:
+Notifications from Cloud Alerting can be sent to any third-party integration, including platforms like OpsGenie, ServiceNow, Microsoft Teams, private tools, and more. Three examples are shared below to illustrate the versatility of this method:
 
 Google Chat Integration: This example demonstrates how to forward alerting notifications to Google Chat rooms. It uses a Flask server running on Cloud Run to receive notifications from Cloud Pub/Sub, parse them into Google Chat messages, and deliver them via HTTP requests.
+
+MS Teams Integration: This example demonstrates how to forward alerting notifications to MS Teams channels. It also uses a Flask server running on Cloud Run to receive notifications from Cloud Pub/Sub, parse them into MS Teams adaptive card or text messages, and deliver them via HTTP requests.
 
 OpsGenie to Slack Integration: This example shows how to send Cloud Alerting notifications to OpsGenie, which then forwards the notifications to Slack, showcasing a multi-step integration.
 
@@ -76,17 +78,25 @@ To deploy the notification channel integration sample for the first time automat
   python3 --version
   ```
 
-2. In `~/notification_integration/main.py` edit the `config_map` dictionary replacing the webhook_url with your own Google Chat webhook url.
+2. In `~/notification_integration/main.py` edit the `config_map` dictionary replacing the webhook_url with your own Google Chat/MS Teams webhook url.
 ```
 config_map = {
-    'tf-topic-cpu': {
+    'tf-topic-cpu-gchat': {
         'service_name': 'google_chat',
         'msg_format': 'card',
         'webhook_url': '<YOUR_GOOGLE_CHAT_ROOM_WEBHOOK_URL>'},
-    'tf-topic-disk': {
+    'tf-topic-disk-gchat': {
         'service_name': 'google_chat',
         'msg_format': 'card',
         'webhook_url': '<YOUR_GOOGLE_CHAT_ROOM_WEBHOOK_URL>'}
+    'tf-topic-cpu-teams': {
+        'service_name': 'microsoft_teams',
+        'msg_format': 'card',
+        'webhook_url': '<YOUR_MS_TEAMS_CHANNEL_WEBHOOK_URL>'},
+    'tf-topic-disk-teams': {
+        'service_name': 'microsoft_teams',
+        'msg_format': 'card',
+        'webhook_url': '<YOUR_MS_TEAMS_CHANNEL_WEBHOOK_URL>'}
 }
 ```
 
@@ -155,14 +165,22 @@ To deploy the notification channel integration sample manually, complete the fol
 
     ```python
     config_map = {
-        'tf-topic-cpu': {
+        'tf-topic-cpu-gchat': {
             'service_name': 'google_chat',
             'msg_format': 'card',
             'webhook_url': '<YOUR_GOOGLE_CHAT_ROOM_WEBHOOK_URL>'},
-        'tf-topic-disk': {
+        'tf-topic-disk-gchat': {
             'service_name': 'google_chat',
             'msg_format': 'card',
             'webhook_url': '<YOUR_GOOGLE_CHAT_ROOM_WEBHOOK_URL>'}
+        'tf-topic-cpu-teams': {
+            'service_name': 'microsoft_teams',
+            'msg_format': 'card',
+            'webhook_url': '<YOUR_MS_TEAMS_CHANNEL_WEBHOOK_URL>'},
+        'tf-topic-disk-teams': {
+            'service_name': 'microsoft_teams',
+            'msg_format': 'card',
+            'webhook_url': '<YOUR_MS_TEAMS_CHANNEL_WEBHOOK_URL>'}
     }
     ```
 
@@ -234,11 +252,11 @@ Terraform is a HashiCorp open source tool that enables you to predictably create
 
 Terraform will create the following resources in your cloud project:
 * A Cloud Run service called `cloud-run-pubsub-service` to deploy the Flask application
-* Two Pub/Sub topics called `tf-topic-cpu` and `tf-topic-disk`
-* Two Pub/Sub push subscriptions: one is called `alert-push-subscription-cpu` that subscribes the topic `tf-topic-cpu` and the other is called `alert-push-subscription-disk` that subscribes the topic `tf-topic-disk`; both set the push endpoint to `cloud-run-pubsub-service`
+* Four Pub/Sub topics called `tf-topic-cpu-gchat`, `tf-topic-disk-gchat`, `tf-topic-cpu-teams`, and `tf-topic-disk-teams`
+* Four Pub/Sub push subscriptions: `alert-push-subscription-cpu-gchat` subscribes the topic `tf-topic-cpu-gchat`,  `alert-push-subscription-disk-gchat` subscribes the topic `tf-topic-disk-gchat`, `alert-push-subscription-cpu-teams` subscribes the topic `tf-topic-cpu-teams`,  `alert-push-subscription-disk-teams` subscribes the topic `tf-topic-disk-teams`; all set the push endpoint to `cloud-run-pubsub-service`
 * A service account with ID `cloud-run-pubsub-invoker` to represent the Pub/Sub subscription identity
-* Two Cloud Pub/Sub notification channels
-* Two Cloud Alerting policies: one is based on the GCE instance CPU usage_time metric and the other is based on the GCE instance Disk read_bytes_count metric.
+* Four Cloud Pub/Sub notification channels
+* Four Cloud Alerting policies: two are based on the GCE instance CPU usage_time metric and the two are based on the GCE instance Disk read_bytes_count metric.
 
 In addition, Terraform configures the following authentication policies:
 * Enabling Pub/Sub to create authentication tokens in your gcloud project
