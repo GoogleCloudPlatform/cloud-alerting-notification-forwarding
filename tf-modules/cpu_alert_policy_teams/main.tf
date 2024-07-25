@@ -29,9 +29,10 @@ module "pubsub_channel" {
 # https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/monitoring_alert_policy
 resource "google_monitoring_alert_policy" "alert_policy" {
   provider                   = google-beta
-  display_name = "Sample Alert Policy: ${var.topic}"
-  project      = var.project_id
-  combiner     = "OR"
+  display_name               = "Sample Alert Policy: ${var.topic}"
+  project                    = var.project_id
+  combiner                   = "OR"
+
   conditions {
     display_name = "test condition"
     condition_threshold {
@@ -49,20 +50,30 @@ resource "google_monitoring_alert_policy" "alert_policy" {
       }
     }
   }
+
   user_labels = {
     severity = "p1"
   }
-  notification_channels = [module.pubsub_channel.notif_channel]
+
+
+
   documentation {
-    content = "This is a sample alert policy."
+    content   = "This is a sample alert policy."
     mime_type = "text/markdown"
     links {
-        display_name = var.link_display_name
-        url          = var.link_url
-      }
+      display_name = var.link_display_name
+      url          = var.link_url
+    }
     links {
       display_name = "Additional LONG LONG LONG LONG Link"
       url          = "https://www.google.com"
+    }
+  }
+  notification_channels = [module.pubsub_channel.notif_channel]
+  alert_strategy {
+    notification_channel_strategy {
+      notification_channel_names = [module.pubsub_channel.notif_channel]
+      renotify_interval          = "1800s"
     }
   }
 }

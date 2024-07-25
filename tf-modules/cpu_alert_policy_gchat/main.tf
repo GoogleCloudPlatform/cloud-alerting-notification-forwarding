@@ -28,28 +28,38 @@ module "pubsub_channel" {
 # Create a sample alert policy with the Cloud Pubsub notification channel.
 # https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/monitoring_alert_policy
 resource "google_monitoring_alert_policy" "alert_policy" {
-  display_name = "Sample Alert Policy: ${var.topic}"
-  project = var.project_id
-  combiner     = "OR"
+  provider                   = google-beta
+  display_name               = "Sample Alert Policy: ${var.topic}"
+  project                    = var.project_id
+  combiner                   = "OR"
+
   conditions {
     display_name = "test condition"
     condition_threshold {
-      filter     = "metric.type=\"compute.googleapis.com/instance/cpu/usage_time\" AND resource.type=\"gce_instance\""
-      duration   = "60s"
-      comparison = "COMPARISON_GT"
-      threshold_value = 0
+      filter           = "metric.type=\"compute.googleapis.com/instance/cpu/usage_time\" AND resource.type=\"gce_instance\""
+      duration         = "60s"
+      comparison       = "COMPARISON_GT"
+      threshold_value  = 0
       trigger {
         count = 1
       }
       aggregations {
-        alignment_period   = "60s"
-        per_series_aligner = "ALIGN_SUM"
+        alignment_period     = "60s"
+        per_series_aligner   = "ALIGN_SUM"
         cross_series_reducer = "REDUCE_SUM"
       }
     }
   }
+
   user_labels = {
     severity = "p1"
   }
+
   notification_channels =[module.pubsub_channel.notif_channel]
+  alert_strategy {
+    notification_channel_strategy {
+      notification_channel_names = [module.pubsub_channel.notif_channel]
+      renotify_interval          = "1800s"
+    }
+  }
 }
