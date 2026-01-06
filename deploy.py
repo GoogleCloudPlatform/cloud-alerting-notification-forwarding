@@ -163,7 +163,7 @@ def _SetupTfRemoteState(project_id: Text):
   """Setups a GCS bucket to store Terraform states remotely."""
   # Create a GCS bucket with the name of "<project_id>-tfstate".
   gcs_bucket_name = '{project_id}-tfstate'.format(project_id=project_id)
-  gcloud_cmd = 'gsutil mb gs://{gcs_bucket_name}'.format(
+  gcloud_cmd = 'gcloud storage buckets create gs://{gcs_bucket_name}'.format(
       gcs_bucket_name=gcs_bucket_name
   )
   err_msg = 'Failed to create the GCS bucket {gcs_bucket_name}'.format(
@@ -171,7 +171,7 @@ def _SetupTfRemoteState(project_id: Text):
   )
   _RunGcloudCommand(gcloud_cmd, err_msg)
   # Enable the versioning of the GCS bucket.
-  gcloud_cmd = 'gsutil versioning set on gs://{gcs_bucket_name}'.format(
+  gcloud_cmd = 'gcloud storage buckets update --versioning gs://{gcs_bucket_name}'.format(
       gcs_bucket_name=gcs_bucket_name
   )
   err_msg = (

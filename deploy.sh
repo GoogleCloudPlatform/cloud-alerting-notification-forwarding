@@ -33,12 +33,12 @@ gcloud projects add-iam-policy-binding $PROJECT_ID --member serviceAccount:$CLOU
 
 echo "6. Create Cloud Storage bucket to store Terraform states remotely:"
 PROJECT_ID=$(gcloud config get-value project)
-echo "gsutil mb gs://${PROJECT_ID}-tfstate"
-gsutil mb gs://${PROJECT_ID}-tfstate
+echo "gcloud storage buckets create gs://${PROJECT_ID}-tfstate"
+gcloud storage buckets create gs://${PROJECT_ID}-tfstate
 
 echo "7. (Optional) You may enable Object Versioning to keep the history of your deployments:"
-echo "gsutil versioning set on gs://${PROJECT_ID}-tfstate"
-gsutil versioning set on gs://${PROJECT_ID}-tfstate
+echo "gcloud storage buckets update --versioning gs://${PROJECT_ID}-tfstate"
+gcloud storage buckets update --versioning gs://${PROJECT_ID}-tfstate
 
 echo "8. Trigger a build and deploy to Cloud Run:"
 echo "gcloud builds submit . --config cloudbuild.yaml --substitutions BRANCH_NAME=main,_DRY_RUN=true,_CONFIG_SERVER_TYPE=in-memory"

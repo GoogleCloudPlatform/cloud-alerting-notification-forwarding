@@ -150,13 +150,13 @@ To deploy the notification channel integration sample manually, complete the fol
     ```bash
     PROJECT_ID=$(gcloud config get-value project)
 
-    gsutil mb gs://${PROJECT_ID}-tfstate
+    gcloud storage buckets create gs://${PROJECT_ID}-tfstate
     ```
 
 7. (Optional) You may enable Object Versioning to keep the history of your deployments:
 
     ```bash
-    gsutil versioning set on gs://${PROJECT_ID}-tfstate
+    gcloud storage buckets update --versioning gs://${PROJECT_ID}-tfstate
     ```
 
 8. Update the configuration with your own Google chat room webhook URLs.
@@ -189,7 +189,7 @@ To deploy the notification channel integration sample manually, complete the fol
     a) Create the GCS bucket:
 
     ```bash
-    gsutil mb gs://gcs_config_bucket_{PROJECT_ID}
+    gcloud storage buckets create gs://gcs_config_bucket_{PROJECT_ID}
     ```
 
     b) Upload a JSON file containing the configuration data named `config_params.json` to the newly created GCS bucket.
